@@ -58,8 +58,8 @@ titlecase: true       # Converts page and post titles to titlecase
 # list each of the sidebar modules you want to include, in the order you want them to appear.
 # To add custom asides, create files in /source/_includes/custom/asides/ and add them to the list like 'custom/asides/custom_aside_name.html'
 default_asides: [
-  asides/github.html
-, asides/delicious.html
+
+  asides/delicious.html
 , asides/pinboard.html
 , asides/googleplus.html
 
@@ -82,10 +82,10 @@ default_asides: [
 # ----------------------- #
 
 # Github repositories
-github_user: 
-github_repo_count: 0
-github_show_profile_link: 
-github_skip_forks: 
+github_user: s-ueno/uENLab
+github_repo_count: 3
+github_show_profile_link: true
+github_skip_forks: true
 
 # Twitter
 twitter_user:

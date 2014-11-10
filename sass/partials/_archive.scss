@@ -40,12 +40,12 @@
     article {
       padding:{bottom: .7em;}
     }
-  a.category, a.tag {
+  a.category {
     line-height: 1.1em;
     }
   }
 }
-#content > .category, .tag {
+#content > .category {
   article {
     margin-left: 0;
     padding-left: 6.8em;

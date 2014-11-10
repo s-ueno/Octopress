@@ -1,0 +1,261 @@
+---
+layout: post
+title: "WPF ViewModelでLOB開発 Vol 04 - コンポジットWPF　おまけでMEF"
+date: 2014-10-31 17:50:00 +0900
+comments: true
+categories: WPF
+tags: [WPF, Binding]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+サンプル成果物はGit管理するようにしました。
+
+[@s-ueno/uENLab] on GitHub 
+
+
+今回は、以前からお話ししていましたコンポジットWPFの片鱗と、おまけで [MEF] という.Net Frameworkが提供する [DI] について紹介します。
+
+
+
+<!-- more -->
+
+
+コンポジット アプリケーション は動いている画面を見ると1画面なのですが、開発時には複数のコントロールを組み合わせて動くような仕組みになります。
+Windows Formの頃はユーザーコントロールとして作成していましたが、ここで利用しているコンテンツ（View/ViewModelセット）には区別はありません。
+
+
+サンプルを起動すると以下の画面が起動します。
+
+
+![wpf-04-01]
+
+
+フレキシブル レイアウトなので、画面を大きくすれば自動でリサイズします。
+
+ShellViewクラスはTabControlを持ち、TabItemとしてアサインしているのものはVol04Viewクラスです。
+
+Vol04Viewクラスには、前回作成した必須入力ルールをテキストボックスに適用しており、ボタン押下のタイミングで検証エラーを検知してアプリケーション例外（業務例外ともいい、致命的な例外とは区別します）をスローします。
+ここにMEFの機能を利用して、例外が業務例外ならばその内容を警告メッセージボックスとして表示する仕組みを注入しています。
+
+ + コンポジット構成
+ + MEFによる業務固有処理の抽入
+
+それぞれについて紹介します。
+
+
+コンポジット構成
+---
+
+MVVMデザイン パターンでは、どのデータ（ViewModel）をどういう外観で描画する（View）というセットをコンテンツとして取り扱います。
+
+
+Window が持つ唯一のContentプロパティには、ContentPresenterがあり、コンテンツを表現する箱として機能します。
+
+ContentにViewModelをセットし、このコンテンツの外観を決定するDataTemplateSelectorを利用して、ViewModelの属性として表現したViewを適用しています。
+
+この仕組みはどのようなコンテンツでも適用できます。今回利用した[TabControl]を確認してみます。
+
+
+[TabControl]は[Selector],[ItemsControl]とベースクラスに持ちます。
+
+[ItemsControl]は複数のコンテンツを持つベースとなるクラスです。  
+[Selector]は、その複数コンテンツは選択および非選択ができる機能のベースクラスです。  
+[TabControl]はそれらの機能を持ち、各コンテンツにセットでHeaderコンテンツを持つクラスになります。
+
+個人的には[ItemsControl]、[Selector]までは優秀なのですが、これを使って作った[TabControl]はちょっと残念な気がしています。
+もっと利便性が高い、複数コンテンツを選択可能なコントロールを作成するのはとても簡単なので、シリーズの中で紹介したいと思います。
+
+
+さておき、[ItemsControl]などの複数のコンテンツを持つクラスは、大きく二つの機能を利用します。
+
+ + [ItemsControl.ItemsSource] プロパティ
+ + [ItemsControl.ItemTemplateSelector] プロパティ
+
+ItemsSourceは、その通り複数のデータを設定するプロパティです。
+ItemTemplateSelectorは、DataTemplateSelectorと同じで、それぞれのデータはどのような外観なのかを選択するための機能になります。
+
+WindowではContentは一つでしたが、ItemsSourceは複数のコンテンツをセットします。
+このセットする際に利便性が高いものが [ListCollectionView] クラスです。
+
+このクラスは外観を持たないコレクションクラスであり、ViewとViewModelに分離したデザインではViewModel側で利用するクラスになります。
+
+ただ、このコレクションにバインドしている外観がもし選択および非選択ができる機能を有するのであれば、そこに指示するMoveCurrentToメソッドなどを持つ、かゆいところに手が届くクラスになります。
+このクラスでフィルタリングして10件を2件とした場合なども、外観にも反映され10タブを2タブにしたりすることができます。
+
+
+ShellView/ShellViewModel クラスはこのコレクションを管理する機能になります。
+コンテンツの実体はVol04View/Vol04ViewModelクラスです。
+
+コンポジット アプリケーションではオブジェクト指向を意識しなくても、柔軟なクラス分割を可能とし、それによって同時開発による生産性の向上や保守性の向上、またパフォーマンス向上も期待できます。
+
+業務要件で複雑なTab機能を有する画面を1つのクラスで作成すると、1万STEPを超えるような複雑怪奇なクラスを作りかねないのですが、このような仕組みではどのようなリッチな画面構成でも、シンプルに作成できます。  
+
+
+
+
+
+MEF
+---
+DIを利用したことがなければピンとこないかもしれません。  
+要はインターフェイスに対して、後付けでインスタンスを割り当てることができる機能になります。
+
+
+LOB開発では様々な横断的関心事が出てきますが、その中には業務要件固有であるものも少なくありません。
+
+業務固有要件なので、システム毎に開発者が用意する機能であり、且つ横断的な関心事であればそれをあちこちでサービス呼び出しするようなことを適用したくない場合に、有効に活用できます。
+
+
+MEFを利用するためには参照設定で「System.ComponentModel.Composition」を追加する必要があります。
+
+
+サンプルのSimpleAppプロジェクトにはExceptionPolicyクラスがあります。
+このクラスはIExceptionPolicyインターフェイスを実装しています。
+
+このIExceptionPolicyインターフェイスを宣言し、利用しているプロジェクトはuENプロジェクトですが、実際にこのインターフェイスを実装している箇所はありません。
+仮にこのインターフェイスに実体が与えられていれば、それを動かすというコーディングのみがあります。
+
+MEFが提供するImport属性を宣言しているので、仮にMEF機能が働けばここにインスタンスがインポートされるイメージになります。
+開発者は、このインターフェイスを実装するクラスに対してExport属性を付与することで、そのクラスが適用される仕組みになります。
+
+
+MEFを利用するにもおまじないコードは必要なのですが、今回はRepositoryクラスを用意しました。
+
+
+```
+
+  public static class Repository
+    {
+        private static readonly List<ComposablePartCatalog> catalogList = new List<ComposablePartCatalog>();
+        static Repository()
+        {
+            var assemblies = ConfigurationManager.GetSection("Repository.AssemblyCatalog") as NameValueCollection;
+            foreach (var each in assemblies.AllKeys)
+            {
+                var assembly = LoadAssembly(each);
+                if (assembly != null)
+                {
+                    catalogList.Add(new AssemblyCatalog(assembly));
+                }
+            }
+
+            var types = ConfigurationManager.GetSection("Repository.TypeCatalog") as NameValueCollection;
+            foreach (var each in types.AllKeys)
+            {
+                var type = LoadType(each);
+                if (type != null)
+                {
+                    catalogList.Add(new TypeCatalog(type));
+                }
+            }
+
+            var catalog = new AggregateCatalog();
+            foreach (var each in catalogList)
+            {
+                catalog.Catalogs.Add(each);
+            }
+            container = new CompositionContainer(catalog);
+        }
+        private static Assembly LoadAssembly(string s)
+        {
+            Assembly assembly = null;
+            try
+            {
+                assembly = Assembly.Load(s);
+            }
+            catch
+            {
+            }
+            return assembly;
+        }
+        private static Type LoadType(string s)
+        {
+            Type type = null;
+            try
+            {
+                type = Type.GetType(s);
+            }
+            catch
+            {
+            }
+            return type;
+        }
+
+        private static CompositionContainer container;
+        public static void Compose(this object obj)
+        {
+            container.ComposeParts(obj);
+        }
+    }
+
+```
+
+
+このリポジトリが構成ファイルから読み込むべき対象を抽出して実体化可能な状態にセットします。
+利用する際には、Import属性を持つクラスのコンストラクタでCompose拡張メソッドを呼び出すことで、そのインターフェイスに自動でインスタンスが割り当てられる仕組みになります。
+
+以下のように利用しています。
+```
+    public class ActionEventPolicyAttribute : Attribute, IRoutedEventPolicy
+    {
+        public ActionEventPolicyAttribute()
+        {
+            this.Compose();
+        }
+        [Import(typeof(IExceptionPolicy))]
+        public IExceptionPolicy ExceptionPolicy { get; set; }
+       
+```
+
+アプリケーション構成ファイル(app.config)ですが、configSectionsを利用することで、任意のセクションを追加することが可能になります。
+これはmachin.configでも利用されているセクションです。
+
+
+ここに二つのレベルで依存性を注入できるようにしています。
+
+ + アセンブリの中にあるExport属性の全てをMEFのカタログに登録する
+ + アセンブリの中でも特定のクラスのみをMEFのカタログに登録する
+
+これによって、柔軟で且つソースコードの変更をかけずに機能を差し替えることが可能となります。
+
+
+app.config
+```
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <configSections>
+    <section name="Repository.AssemblyCatalog" type="System.Configuration.NameValueSectionHandler" />
+    <section name="Repository.TypeCatalog" type="System.Configuration.NameValueSectionHandler" />
+  </configSections>
+  <Repository.AssemblyCatalog>
+    <add key="uEN" value="" />
+    <add key="SimpleApp" value="" />
+  </Repository.AssemblyCatalog>
+
+  <Repository.TypeCatalog>
+  </Repository.TypeCatalog>
+```
+
+
+
+
+
+---
+
+[@s-ueno/uENLab]:https://github.com/s-ueno/uENLab
+[MEF]:http://msdn.microsoft.com/ja-jp/library/dd460648.aspx
+[DI]:http://ja.wikipedia.org/wiki/%E4%BE%9D%E5%AD%98%E6%80%A7%E3%81%AE%E6%B3%A8%E5%85%A5
+[コンポジット アプリケーション]:http://msdn.microsoft.com/ja-jp/library/gg592959.aspx
+[TabControl]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.tabcontrol.aspx
+[Selector]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.primitives.selector.aspx
+[ItemsControl]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.aspx
+[ItemsControl.ItemsSource]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.itemssource.aspx
+[ItemsControl.ItemTemplateSelector]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.itemtemplateselector.aspx
+[ListCollectionView]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.listcollectionview.aspx
+
+[wpf-04-01]:http://s-ueno.github.io/images/wpf-04-01.png
+
+
+
+
