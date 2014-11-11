@@ -1,0 +1,192 @@
+---
+layout: post
+title: "Buttonに学ぶテンプレートとスタイル - WPF Vol 05"
+date: 2014-11-11 01:09:00 +0900
+comments: true
+categories: WPF
+tags: [Style, Template, WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+Buttonの外観を通じて、テンプレートおよびスタイルについて紹介します。
+
+
+![wpf-06-01]
+
+
+<!-- more -->
+
+
+Windows 7 スタイル
+---
+
+WPFがこのお馴染みのスタイルを描画するためには、以下のような要件を適用しています。
+
++ キーボードフォーカス(入力デバイスがキーボードがミソ。マウスじゃないよ)が入ると、ボタンの枠よりマージン2だけ小さい領域に指定した間隔の点線を描画
++ 論理フォーカスが入ると、ButtonChromeクラスがゴニョゴニョして、ボタンの後ろ側にあるコンテンツの色がアクセント色になる
++ 背景色は上から下に向かい、高さの半分からグラデーションで描画
++ マウスがボタンの上にくるとボタンの色がアクセント色になる
++ ボタンの上でマウスが押されている状態時に、ボタンの前景色を濃くする
++ ボタンの文字は、内部的にContentPresenterに文字を設定しているので、自動でTextBlock化して表示されている
+
+
+などなど、あげたらきりがありませんが、これらの要件をXAMLのスタイル上で以下のように表現しています。
+
+
+```
+<Style x:Key="ButtonFocusVisual">
+    <Setter Property="Control.Template">
+        <Setter.Value>
+            <ControlTemplate>
+                <Rectangle Margin="2" SnapsToDevicePixels="true" Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" StrokeThickness="1" StrokeDashArray="1 2"/>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+<LinearGradientBrush x:Key="ButtonNormalBackground" EndPoint="0,1" StartPoint="0,0">
+    <GradientStop Color="#F3F3F3" Offset="0"/>
+    <GradientStop Color="#EBEBEB" Offset="0.5"/>
+    <GradientStop Color="#DDDDDD" Offset="0.5"/>
+    <GradientStop Color="#CDCDCD" Offset="1"/>
+</LinearGradientBrush>
+<SolidColorBrush x:Key="ButtonNormalBorder" Color="#FF707070"/>
+<Style x:Key="AeroButtonStyle" TargetType="{x:Type Button}">
+    <Setter Property="FocusVisualStyle" Value="{StaticResource ButtonFocusVisual}"/>
+    <Setter Property="Background" Value="{StaticResource ButtonNormalBackground}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource ButtonNormalBorder}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="Padding" Value="1"/>
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+                <Themes:ButtonChrome x:Name="Chrome" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" RenderMouseOver="{TemplateBinding IsMouseOver}" RenderPressed="{TemplateBinding IsPressed}" RenderDefaulted="{TemplateBinding IsDefaulted}" SnapsToDevicePixels="true">
+                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                </Themes:ButtonChrome>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsKeyboardFocused" Value="true">
+                        <Setter Property="RenderDefaulted" TargetName="Chrome" Value="true"/>
+                    </Trigger>
+                    <Trigger Property="ToggleButton.IsChecked" Value="true">
+                        <Setter Property="RenderPressed" TargetName="Chrome" Value="true"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="false">
+                        <Setter Property="Foreground" Value="#ADADAD"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+```
+
+このStyleですが、VisualStudio上で以下のように右クリックで簡単に取得できます。
+
+![wpf-06-02]
+
+
+XAML上に `<Button Width="150" Height="50" Content="送信する" x:Name="SampleButton"/>` と定義するだけで、内部的にはButton用スタイルが自動で適用されているわけです。
+ボタン自体のスタイルは `<Style x:Key="AeroButtonStyle" TargetType="{x:Type Button}">` から始まります。
+
+
+ `x:Key="AeroButtonStyle"` とキー指定している場合は、XAML上で明示的にキーを設定しないと適用されません。
+
+
+キー指定せずに `<Style TargetType="{x:Type Button}">` とStyle定義すると、全てのボタンのスタイルがこれから定義するStyleに自動で従うようになります。  
+また、 `<Style TargetType="{x:Type Button}" BasedOn="{StaticResource {x:Type Button}}">` と、BasedOnを指定することで、元になる定義済みのスタイルを適用した上で任意のスタイルを上書きすることもできます。
+
+
+ `<Setter Property="FocusVisualStyle" Value="{StaticResource ButtonFocusVisual}"/> `
+ですが、TargetTypeが Button で Property名が "FocusVisualStyle" つまり [Button.FocusVisualStyle] プロパティに対して、Value=で "ButtonFocusVisual" というキー名の値を設定していることを表します。
+
+
+このキー名に一致するものは、以下のようになっています・
+
+```
+<Style x:Key="ButtonFocusVisual">
+    <Setter Property="Control.Template">
+        <Setter.Value>
+            <ControlTemplate>
+                <Rectangle Margin="2" SnapsToDevicePixels="true" Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" StrokeThickness="1" StrokeDashArray="1 2"/>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+```
+
+Margin="2" で StrokeThickness="1" StrokeDashArray="1 2"の点線を描画していますね。
+
+WPFの組み込み済みコントロールも、最小限の部品（LabelやTextBlock、Rectangle）を組み合わせて構成されていることがわかります。
+なので、これら最小限の部品に対しては、デフォルトでスタイルが適用されるようなことをやってはなりません。
+
+ `<Style TargetType="{x:Type TextBlock}">` とかすると、TextBlockはいたるところで利用されているので画面がまともに描画されなくなります。
+
+こういう場合に、 `<Style x:Key="MyTextBlock" TargetType="{x:Type TextBlock}">` のようにキーを明示的に宣言して、他のコントロールに影響がでないようにします。
+同じように `<Setter Property="` とプロパティ値をカスタマイズしていきますが、この際にスタイルをダイナミックに書き換えることもできます。
+
+ `<Setter Property="Background" Value="{DynamicResource MyBackgroundBrush}"/> `
+
+[DynamicResource]ですが、これはこのスタイルを必要とする段階で、リソースをキー名で検索に行きます。
+
+
+アプリケーションはそのブランドイメージに見合う色などがあります。
+このブログも今は白とブルーを基調としたイメージカラーになっています。
+このようなイメージカラーをたとえば、カラーピッカーなどを利用してアプリケーションの実行中にダイナミックに変更することが可能になります。
+
+
+Xamlを利用して、様々なStyleを作成していく中で、 `<Setter Property="Template"> ` については、特別な意味があります。
+[Button.Template] プロパティは、このボタンの外観に関する全てを新しく書き換えることを意味します。
+
+
+Windows7のAeroスタイル例を整理しながら説明します。
+
+
+```
+<Setter Property="Template">
+    <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+            <Themes:ButtonChrome x:Name="Chrome" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" RenderMouseOver="{TemplateBinding IsMouseOver}" RenderPressed="{TemplateBinding IsPressed}" RenderDefaulted="{TemplateBinding IsDefaulted}" SnapsToDevicePixels="true">
+                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </Themes:ButtonChrome>
+        </ControlTemplate>
+    </Setter.Value>
+</Setter>
+```
+
+
+`<ControlTemplate TargetType="{x:Type Button}">` として、Buttonの外観を再定義しています。  
+
+
+その中身は `<Themes:ButtonChrome ・・・` として、[Microsoft.Windows.Themes.ButtonChrome] クラスを指定しています。
+ここにCheckBoxを指定した場合は、開発者はButtonをXamlに定義しているにもかかわらず画面上にはチェックボックスが表示されることになります。
+
+
+次に、各種プロパティに設定している[TemplateBinding]は、別のコントロールの指定したプロパティ値を参照するバインディング機能になります。
+ここでは、ButtonChrome.BorderBrushは、ControlTemplateで定義されているButton(つまりもともとのコントロール)のBorderBrush値を参照するように設定されています。
+
+最後にBotton.Contentプロパティに設定したボタン名（文字列）が、ContentPresenterに設定された結果、TextBlockとして画面に表示されることになります。
+
+
+
+さらにControlTemplateクラスには、
+
+
+
+
+
+
+
+---
+
+[Button.FocusVisualStyle]:http://msdn.microsoft.com/ja-jp/library/system.windows.frameworkelement.focusvisualstyle.aspx
+[DynamicResource]:http://msdn.microsoft.com/ja-jp/library/ms748942.aspx
+[Button.Template]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.control.template.aspx
+[Microsoft.Windows.Themes.ButtonChrome]:http://msdn.microsoft.com/ja-jp/library/microsoft.windows.themes.buttonchrome.aspx
+[TemplateBinding]:http://msdn.microsoft.com/ja-jp/library/ms742882.aspx
+
+[wpf-06-01]:http://s-ueno.github.io/images/wpf-06-01.png
+[wpf-06-02]:http://s-ueno.github.io/images/wpf-06-02.png
