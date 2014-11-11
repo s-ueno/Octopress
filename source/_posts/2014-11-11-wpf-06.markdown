@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Buttonに学ぶテンプレートとスタイル - WPF Vol 05"
-date: 2014-11-11 01:09:00 +0900
+date: 2014-11-11 23:58:00 +0900
 comments: true
 categories: WPF
 tags: [Style, Template, WPF]
