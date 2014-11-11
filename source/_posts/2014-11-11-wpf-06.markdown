@@ -32,7 +32,7 @@ WPFがこのお馴染みのスタイルを描画するためには、以下の�
 + ボタンの文字は、内部的にContentPresenterに文字を設定しているので、自動でTextBlock化して表示されている
 
 
-などなど、あげたらきりがありませんが、これらの要件をXAMLのスタイル上で以下のように表現しています。
+などなどキリがありませんが、これらの要件をXAMLのスタイル上で以下のように表現しています。
 
 
 ```
@@ -118,24 +118,36 @@ XAML上に `<Button Width="150" Height="50" Content="送信する" x:Name="Sampl
 </Style>
 ```
 
-Margin="2" で StrokeThickness="1" StrokeDashArray="1 2"の点線を描画していますね。
+Margin="2" で StrokeThickness="1" StrokeDashArray="1 2"のRectangleを描画していますね。  
+確かにTabでキーボードフォーカスを入れると、ちょっと小さな枠に点線で四角が描画されていませんか？
 
-WPFの組み込み済みコントロールも、最小限の部品（LabelやTextBlock、Rectangle）を組み合わせて構成されていることがわかります。
+
+![wpf-06-03]
+
+
+WPFが標準で提供する組込みコントロールも、最小限の部品（LabelやTextBlock、Rectangle）を組み合わせて構成されていることがわかります。
 なので、これら最小限の部品に対しては、デフォルトでスタイルが適用されるようなことをやってはなりません。
 
  `<Style TargetType="{x:Type TextBlock}">` とかすると、TextBlockはいたるところで利用されているので画面がまともに描画されなくなります。
 
-こういう場合に、 `<Style x:Key="MyTextBlock" TargetType="{x:Type TextBlock}">` のようにキーを明示的に宣言して、他のコントロールに影響がでないようにします。
-同じように `<Setter Property="` とプロパティ値をカスタマイズしていきますが、この際にスタイルをダイナミックに書き換えることもできます。
+といっても、テキストブロック用のStyleを用意したい場合には `<Style x:Key="MyTextBlock" TargetType="{x:Type TextBlock}">` のようにキーを明示的に宣言して、他のコントロールに影響がでないようにします。
+
+
+次に `<Setter Property="` とプロパティ値をカスタマイズしていきますが、この際にスタイルをダイナミックに適用することもできます。
 
  `<Setter Property="Background" Value="{DynamicResource MyBackgroundBrush}"/> `
 
-[DynamicResource]ですが、これはこのスタイルを必要とする段階で、リソースをキー名で検索に行きます。
+[DynamicResource]ですが、これは要素が実際にテンプレートを必要とする（描画）段階で、キー名で検索して適用します。
+StaticResourceが定数としたら、DynamicResourceは書き換え可能な変数というところでしょうか。
 
 
 アプリケーションはそのブランドイメージに見合う色などがあります。
 このブログも今は白とブルーを基調としたイメージカラーになっています。
 このようなイメージカラーをたとえば、カラーピッカーなどを利用してアプリケーションの実行中にダイナミックに変更することが可能になります。
+
+
+テンプレート
+---
 
 
 Xamlを利用して、様々なStyleを作成していく中で、 `<Setter Property="Template"> ` については、特別な意味があります。
@@ -162,21 +174,221 @@ Windows7のAeroスタイル例を整理しながら説明します。
 
 
 その中身は `<Themes:ButtonChrome ・・・` として、[Microsoft.Windows.Themes.ButtonChrome] クラスを指定しています。
-ここにCheckBoxを指定した場合は、開発者はButtonをXamlに定義しているにもかかわらず画面上にはチェックボックスが表示されることになります。
+仮にココにCheckBoxを指定した場合は、開発者はButtonをXamlに定義しているにもかかわらず、実行してみると画面上にはチェックボックスが表示されることになります。これがテンプレートです。
 
 
-次に、各種プロパティに設定している[TemplateBinding]は、別のコントロールの指定したプロパティ値を参照するバインディング機能になります。
+各種プロパティに設定している[TemplateBinding]は、別のコントロール プロパティ値を参照するバインディング機能になります。
 ここでは、ButtonChrome.BorderBrushは、ControlTemplateで定義されているButton(つまりもともとのコントロール)のBorderBrush値を参照するように設定されています。
 
-最後にBotton.Contentプロパティに設定したボタン名（文字列）が、ContentPresenterに設定された結果、TextBlockとして画面に表示されることになります。
+[TemplateBinding] はより具体的で柔軟な設定を可能とし、例えば2個上の親コンテンツのプロパティ値や、指定した親の型が見つかればその値を利用するなど、カスタム コントロールを作成するレベルでは、とても重宝するバインディング機能の一つです。
+
+
+WPFはバインディングとテンプレートが肝要と紹介する所以です。
+
+
+`<ContentPresenter ・・・` は Botton.Contentプロパティに設定した"送信する"という表示文字列が、ContentPresenterに設定された結果、前に説明した通りTextBlockとして画面に表示されることになります。
+
+
+WPFのデバック機能で、ビジュアライザーというものがあります。
+これを通して、外観を確認すると、なるほどとなります。
+
+
+サンプルボタン
+
+
+![wpf-06-04]
+
+
+そのテンプレートの最終的なContentPresenter
+
+
+![wpf-06-05]
 
 
 
-さらにControlTemplateクラスには、
+次に、先ほどは省略しましたが ControlTemplate に、[ControlTemplate.Triggers] プロパティ値を設定していたと思います。
+
+```
+<ControlTemplate.Triggers>
+    <Trigger Property="IsKeyboardFocused" Value="true">
+        <Setter Property="RenderDefaulted" TargetName="Chrome" Value="true"/>
+    </Trigger>
+    <Trigger Property="ToggleButton.IsChecked" Value="true">
+        <Setter Property="RenderPressed" TargetName="Chrome" Value="true"/>
+    </Trigger>
+    <Trigger Property="IsEnabled" Value="false">
+        <Setter Property="Foreground" Value="#ADADAD"/>
+    </Trigger>
+</ControlTemplate.Triggers>
+```
+
+これがXAMLが単なる[データ記述言語]よりも優れていて、なんらかのイベント トリガーをキーに動的にプロパティ値を変更することができる技術になります。
+
+キーボードフォーカスを受け取ったときや、非活性時にはそれに見合ったスタイルを動的に適用することができます。
+
+
+こういった様々なXAML上の技術が適用されてWindows7のAeroスタイルが適用されていますが、ここで考えたいのが
+
+
+> “What is the difference between art and design?”（デザインとアートの違いとは何か？）
+
+
+> ”Design solves a problem, art is expression”（デザインとは問題解決であり、アートとは自己表現である。）
+
+
+> Why?をBecauseで説明出来なければ、それは明らかにデザインではない
+
+
+です。
+
+
+これを素で開発するとした場合は、開発者には高い技術力を求め、OSもこれを描画するための高いコストを支払います。
+果たして、これに対して Because を説明できるでしょうか？
+
+
+そうした結果が、Windows8 Styleや Flat Ftyleにつながりますが、果たしてまだ最適化はできないものでしょうか？
+
+
+
+Windows8 Style
+---
+
+
+![wpf-06-06]
+
+Flat Styleはボタンを押下すると、ブランド カラー が表示されています。  
+どちらも、無駄なグラデーションなどはなくなりました。
+
+Windows 8 で、同じようにXaml上で右クリック-テンプレートの編集から、適用されているXAMLのスタイルが簡単にコピーできます。
+
+```
+<Style x:Key="FlatButtonStyle" TargetType="{x:Type Button}">
+
+<!-- アプリケーションで統一的なフォント、サイズなどをダイナミックに適用 -->
+<Setter Property="Foreground"                   Value="{DynamicResource AppForeground}"/>
+<Setter Property="FontFamily"                   Value="{DynamicResource AppFont}"/>
+<Setter Property="FontSize"                     Value="{DynamicResource AppFontSize}"/>
+
+<!-- ボタン特有のスタイル -->
+<Setter Property="Background"                   Value="{DynamicResource ButtonBackground}"/>
+<Setter Property="BorderBrush"                  Value="{DynamicResource ButtonBorder}"/>
+<Setter Property="FocusVisualStyle"             Value="{x:Null}"/>
+<Setter Property="BorderThickness"              Value="1,1,1,1"/>
+<Setter Property="HorizontalContentAlignment"   Value="Center"/>
+<Setter Property="VerticalContentAlignment"     Value="Center"/>
+<Setter Property="Template">
+    <Setter.Value>
+        <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="border" 
+                    BorderBrush="{TemplateBinding BorderBrush}" 
+                    BorderThickness="{TemplateBinding BorderThickness}" 
+                    Background="{TemplateBinding Background}" 
+                    SnapsToDevicePixels="True">
+                <ContentPresenter x:Name="contentPresenter" 
+                                  ContentTemplate="{TemplateBinding ContentTemplate}" 
+                                  Content="{TemplateBinding Content}" 
+                                  ContentStringFormat="{TemplateBinding ContentStringFormat}" 
+                                  Focusable="False" 
+                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                  Margin="{TemplateBinding Padding}" 
+                                  RecognizesAccessKey="True" 
+                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" 
+                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsEnabled" Value="false">
+                    <Setter Property="Foreground" Value="{DynamicResource AppForegroundDisabled}"/>
+                    <Setter Property="Background" Value="{DynamicResource AppDisabled}"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonBackgroundHover}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderHover}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextHover}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ButtonBackgroundPressed}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource ButtonBorderPressed}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonTextPressed}"/>
+                </Trigger>
+                <Trigger Property="IsFocused" Value="true">
+                    <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AppBrand}" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </Setter.Value>
+</Setter>
+</Style>
+```
+
+Wibndows 7 のAeroスタイルよりもまだ描画コストは減りましたが、あんまり変わりませんね。
+もっと、最適化できないか？削れないか？本当にそれは必要か？と考えた際にたどり着くのがModern Styleになります。
+
+
+
+Modern Style
+---
+
+もはやボタン枠すらもありませんが、確かにユーザーはそれを押下できるコンテンツと認識でき、何が起こるかを理解できます。
+
+![wpf-06-07]
+
+
+こうなると、XAML上のスタイルも簡単で、OSもこれを描画するためにコストはかけません。  
+かといって、ユーザーがこれを退屈なコンテンツと認識するかといえば、とてもモダンな雰囲気を受けます。
+
+
+```
+<Style x:Key="ModernButtonStyle" TargetType="{x:Type Button}" >
+<Setter Property="Foreground"                   Value="{DynamicResource AppBrand}" />
+<Setter Property="FontFamily"                   Value="{DynamicResource AppFont}"/>
+<Setter Property="FontSize"                     Value="{DynamicResource AppFontSize}"/>
+
+<Setter Property="FocusVisualStyle"             Value="{x:Null}"/>
+<Setter Property="HorizontalContentAlignment"   Value="Center"/>
+<Setter Property="VerticalContentAlignment"     Value="Center"/>
+<Setter Property="Focusable"                    Value="False" />
+<Setter Property="Template">
+    <Setter.Value>
+        <ControlTemplate TargetType="Button">
+            <TextBlock Name="chrome" 
+                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                <ContentPresenter />
+            </TextBlock>                
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="true">
+                    <Setter TargetName="chrome" Property="TextBlock.TextDecorations" Value="Underline" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </Setter.Value>
+</Setter>
+<Style.Triggers>
+    <Trigger Property="IsEnabled" Value="false">
+        <Setter Property="Foreground" Value="{DynamicResource AppForegroundDisabled}"/>
+    </Trigger>
+</Style.Triggers>
+</Style>
+
+```
+
+
+もはやスタイルは必要最低限で、しかしマウスが乗るとそれが実行可能なコンテンツであることを即座に理解できます。
+
+![wpf-06-08]
+
+ブランドカラーをカスタマイズもできます。
+しかも、これはアプリケーション ポリシーのようなもので、開発者はただ単にXaml上でButtonと定義しただけにもかかわらず、自動的にこのスタイルが適用されることになります。
+
+
+LOB開発が、モダンで先進的なWebデザインに一矢報いることも夢ではありません。
 
 
 
 
+いつものごとく、サンプル成果物はGit管理で。
+
+[@s-ueno/uENLab] on GitHub 
 
 
 
@@ -187,6 +399,16 @@ Windows7のAeroスタイル例を整理しながら説明します。
 [Button.Template]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.control.template.aspx
 [Microsoft.Windows.Themes.ButtonChrome]:http://msdn.microsoft.com/ja-jp/library/microsoft.windows.themes.buttonchrome.aspx
 [TemplateBinding]:http://msdn.microsoft.com/ja-jp/library/ms742882.aspx
+[ControlTemplate.Triggers]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.controltemplate.triggers.aspx
+[データ記述言語]:http://ja.wikipedia.org/wiki/%E3%83%87%E3%83%BC%E3%82%BF%E8%A8%98%E8%BF%B0%E8%A8%80%E8%AA%9E
 
 [wpf-06-01]:http://s-ueno.github.io/images/wpf-06-01.png
 [wpf-06-02]:http://s-ueno.github.io/images/wpf-06-02.png
+[wpf-06-03]:http://s-ueno.github.io/images/wpf-06-03.png
+[wpf-06-04]:http://s-ueno.github.io/images/wpf-06-04.png
+[wpf-06-05]:http://s-ueno.github.io/images/wpf-06-05.png
+[wpf-06-06]:http://s-ueno.github.io/images/wpf-06-06.png
+[wpf-06-07]:http://s-ueno.github.io/images/wpf-06-07.png
+[wpf-06-08]:http://s-ueno.github.io/images/wpf-06-08.png
+[@s-ueno/uENLab]:https://github.com/s-ueno/uENLab
+
