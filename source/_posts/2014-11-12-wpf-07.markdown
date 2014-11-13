@@ -1,0 +1,23 @@
+---
+layout: post
+title: "TextBoxに学ぶテンプレートとスタイル - WPF Vol 05"
+date: 2014-11-12 23:58:00 +0900
+comments: true
+categories: WPF
+tags: [Style, Template, WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+Buttonの外観を通じて、テンプレートおよびスタイルについて紹介します。
+
+
+![wpf-06-01]
+
+
+<!-- more -->
+
+
+Windows 7 スタイル
+---
