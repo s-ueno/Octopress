@@ -1,23 +1,319 @@
 ---
 layout: post
-title: "TextBox�Ɋw�ԃe���v���[�g�ƃX�^�C�� - WPF Vol 05"
-date: 2014-11-12 23:58:00 +0900
+title: "Windowに学ぶテンプレートと添付プロパティ - WPF Vol 06"
+date: 2014-11-15 03:19:00 +0900
 comments: true
 categories: WPF
 tags: [Style, Template, WPF]
-description: ViewModel�ŊȒP��LOB�J���ł���悤�ȃ\�����[�V������ڎw���܂��B
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
 keywords: uENLaboratory
 ---
 
+従来型の開発ではButtonクラスの外観や機能を変更したい場合は、派生させButtonExカスタムコントロールを作成していました。
+しかし前回紹介したように、XamlではButtonクラスにスタイルとテンプレートを適用することで、外観をカスタマイズできることを確認しました。
 
-Button�̊O�ς�ʂ��āA�e���v���[�g����уX�^�C���ɂ��ďЉ�܂��B
+では今度は Window をストアアプリのようなモダンなものに変えたいと思います。
+また、スタイルだけではなくそこで発生するイベントも添付プロパティを利用して、外部から制御したいと思います。
 
 
-![wpf-06-01]
+![wpf-07-01]
 
 
 <!-- more -->
 
+イメージのWindowは `var window = new Window();` としているだけで、特にStyleを明示的に設定はしていません。
 
-Windows 7 �X�^�C��
+[System.Windows.Application] クラスのリソースに、 `<Style TargetType="{x:Type Window}">` と宣言しているリソースディクショナリを登録しているため、デフォルトでこのスタイルで表示されるようになっています。
+
+
+次に、MSDN で [WPF ウィンドウの概要] として紹介している以下の図がわかりやすいのですが
+
+
+![wpf-07-02]
+
+
+最小・最大ボタンや境界線などデフォルトで表示されるものをOFFにし、Windowクラスの外観であるクライアント領域内ですべて実装しています。
+
+
+ `<Setter Property="Template">` とTemplateを差し替える前までは、お決まりのスタイルである、前景色、背景色、フォントなどをDynamicResource で設定します。
+
+
+
+```
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:local="clr-namespace:uEN.UI.AttachedProperties"
+                    >
+    <Style TargetType="{x:Type Window}">
+        <Setter Property="Foreground"                   Value="{DynamicResource AppForeground}"/>
+        <Setter Property="FontFamily"                   Value="{DynamicResource AppFont}"/>
+        <Setter Property="FontSize"                     Value="{DynamicResource AppFontSize}"/>
+        <Setter Property="Background"                   Value="{DynamicResource WindowTheme}"/>
+        <Setter Property="BorderBrush"                  Value="{DynamicResource AppBrand}"/>
+        <Setter Property="BorderThickness"              Value="3" />
+        <Setter Property="Focusable"                    Value="False" />
+        <Setter Property="FocusVisualStyle"             Value="{x:Null}"/>
+        <Setter Property="WindowStyle"                  Value="None" />
+        <Setter Property="AllowsTransparency"           Value="True" />
+        <Setter Property="ResizeMode"                   Value="CanResizeWithGrip" />
+        <Setter Property="WindowChrome.WindowChrome">
+            <Setter.Value>
+                <WindowChrome ResizeBorderThickness="10" />
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Window}">
+                    <Border BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            Background="{TemplateBinding Background}">
+                        <Grid x:Name="PART_rootGrid">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                   ・
+                   ・
+                   ・
+```
+
+BorderBrush、BorderThicknessは、`<Setter Property="Template">` でこれから差し替えるControlTemplate の最初に
+
+```
+<ControlTemplate TargetType="{x:Type Window}">
+    <Border BorderBrush="{TemplateBinding BorderBrush}" 
+            BorderThickness="{TemplateBinding BorderThickness}" 
+            Background="{TemplateBinding Background}">
+```
+
+としてBorderを用意しTemplateBindingでバインドすることで、画像のように全体の枠線が色付きで表示されるようになっています。
+
+
+WindowStyleをNone、AllowsTransparencyをTrueとすることで、境界線や最小最大化ボタンの領域が見えなくなります。
+ただ、それではWindowを動かせなくなることや、大きさを変更できなくなるので、[WindowChrome.WindowChrome] 添付プロパティを利用して、Windowの大きさを変更できるための領域幅を指定した新しいWindowChromeを設定しています。
+
+
+```
+<!-- WindowChromeは.Net4.5から提供されている機能 -->
+<Setter Property="WindowChrome.WindowChrome">
+    <Setter.Value>
+        <WindowChrome ResizeBorderThickness="10" />
+    </Setter.Value>
+</Setter>
+```
+
+これで、リサイズやWibdowの移動ができるようになります。
+あとは作成したい画面構成をイメージしながらGridを利用してレイアウトを区切っていきます。
+
+
+まず、以下のようにしました。
+
+
+![wpf-07-03]
+
+
+Gridを行単位で区切り、上部と下部を可変幅( `<RowDefinition Height="auto"/>` )、真ん中を領域いっぱいに利用(` <RowDefinition Height="*"/> `)するように宣言します。
+
+
+```
+ <Grid x:Name="PART_rootGrid">
+     <Grid.RowDefinitions>
+         <RowDefinition Height="auto"/>
+         <RowDefinition Height="*"/>
+         <RowDefinition Height="auto"/>
+     </Grid.RowDefinitions>
+     <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="*"/>
+     </Grid.ColumnDefinitions>
+     
+
+```
+
+こうなると、もう普通のXamlで画面を開発するのと同じように、Style上でControlTemmplateの中身を記述していきます。
+
+まず、Grid上部に対して詳細レイアウトをイメージし、その通りに新しくGridを配置します。
+
+
+![wpf-07-04]
+
+```
+ <!-- Grid.Row="0"として、親のグリッドの最初の行であることを宣言する -->
+ <Grid Grid.Row="0" Height="100">
+     <Grid.RowDefinitions>
+         <RowDefinition Height="auto"/>
+         <RowDefinition Height="auto"/>
+         <RowDefinition Height="*"/>
+         <RowDefinition Height="auto"/>
+     </Grid.RowDefinitions>
+     <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="auto"/>
+         <ColumnDefinition Width="auto"/>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="*"/>
+     </Grid.ColumnDefinitions>
+
+```
+
+
+次に0列目、4行をまたがっている領域を利用します。  
+
+
+![wpf-07-05]
+
+
+これは日本人にはなじみ深いExcelのセルをマージする要領ですね。
+`Grid.Column="0" Grid.RowSpan="4" `　とすることで、そのようなマージされた領域を利用できます。
+
+
+```
+<Border Margin="10,0,5,0" Width="10" Grid.Column="0" Grid.RowSpan="4" Background="{DynamicResource AppBrand}" >
+    <Border.RenderTransform>
+        <TransformGroup>
+            <SkewTransform AngleY="50" />
+        </TransformGroup>
+    </Border.RenderTransform>
+</Border>
+```
+
+そこにBorder でブランドカラーの四角形を描画しています。
+ただ、その四角形はWPFの強力な2Dグラフィック機能を利用して、少し角度をつけて描画しています。
+
+
+ブランドに注目を集める事、アプリケーションのテーマカラーを確認できることを目的にしています。
+
+次にブランドを表示する箇所です。同じようにグリッドのセルの座標を指定して領域を確保しますが、ここの文字はアプリケーションによって異なります。
+そのため、バインドする必要があります。
+
+このシリースはWindow.ContentにViewModelを、ContentTemplateSelectorを利用してViewを表示しています。
+
+なので、このコンテンツにとって、バインドする際のプロパティまでのパスは、Content.(ViewModelのプロパティ名)とし、それを解決するための相対的な位置をバインディングに指定しています。
+
+![wpf-07-06]
+
+
+ViewModelの基底クラスにプロパティを用意することで、デフォルトで適用するもしくは開発者がViewModel側で任意に設定して表示することが可能となります。
+
+
+```
+public string CompanyName
+{
+    get { return companyName; }
+    set { SetProperty(ref companyName, value); }
+}
+private string companyName = BizUtils.AppSettings("CompanyName", "");
+
+```
+
+
+後は同じようにデザインしていくのですが、今回は最小最大ボタンと設定ボタンという任意のボタンを配置しました。
+
+最大最小のボタン デザイン面では、描画に[Marlett] フォントを利用しています。
+また、×ボタンはフォーカスを受け取ると、赤で強調表示されるようにしています。
+
+設定マークは [Alex Peattie]さんのフリーのXamlのジオメトリを利用しています。
+
+
+ただ、レイアウトを用意するのは良いのですが、ここにクリックされた際の実装が必要になります。
+そこで登場するのが、添付プロパティです。
+
+
+![wpf-07-07]
+
+`local:WindowProxy.Command="Close" `
+
+WPFの組み込みコントロールクラスとは関係のない、別クラスで宣言した添付プロパティをセットし、処理を注入することができます。
+
+VisualStudioのコードスニペット機能を利用してpropaと入力すると自動で添付プロパティが作成されます。
+
+![wpf-07-08]
+
+
+![wpf-07-09]
+
+今回はWindowの最小・最大　+　設定ボタンの押下時の処理を実装する添付プロパティクラスを用意しました。
+
+
+![wpf-07-10]
+
+
+プロパティ値の変更時に処理が動くメソッドが定義できます。
+ここで、ボタンに対してクリック時のイベントをバインドしています。
+
+
+Styleで外観を刷新でき、処理も添付プロパティを利用して注入できるということは、たとえば、開発者はWPFの組込済みテキストボックスを配置、あとは提供されている任意の添付プロパティを選択すれば、自動で数値用テキストボックスや入力自動補完テキストボックスなどに差し替わることが可能となります。
+
+
+ちなみに、Buttonクラスは[Button.Command]プロパティが用意されていて、ここに組み込み済みのICommandを割り当てることもできます。
+たとえば、[SystemCommands]などです。
+
+そうなのですが・・・・どうしてICoomandをプロパティに持つという条件付の機能にしたのでしょうか？
+それこそ添付プロパティとして、任意のルーティングイベントと紐付けられるように提供してくれれば、良かったのですが。
+
+なぜかというと、前回のようにボタンから不要な機能をすべて削り落としていくと
+
+![wpf-06-08]
+
+もうテンプレートの中にはCommandプロパティを持つButtonの要素は存在しないのですよね。。。
+
+
+```
+    <Style x:Key="ModernButtonStyle" TargetType="{x:Type Button}" >
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <TextBlock Name="chrome" 
+                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                        <ContentPresenter />
+                    </TextBlock>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="chrome" Property="TextBlock.TextDecorations" Value="Underline" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+
+```
+
+TextBlockとContentPresenterしか要素がないので、Commandを設定しても動きません。
+この制約は、添付プロパティの自由度と比べると見劣りしてしまいます。
+
+
+ちなみに、今回はまだ設定ボタン押下時の処理を実装していません。
+次回は、この設定ボタンを押下すると、アニメーションしながら設定画面が表示されるようにしたいと思います。
+
+
+サンプル成果物はGit管理で。
+
+[@s-ueno/uENLab] on GitHub 
+
+
+
 ---
+[System.Windows.Application]:http://msdn.microsoft.com/ja-jp/library/system.windows.application.aspx
+[WPF ウィンドウの概要]:http://msdn.microsoft.com/ja-jp/library/ms748948.aspx
+[WindowChrome.WindowChrome]:http://msdn.microsoft.com/ja-jp/library/system.windows.shell.windowchrome.windowchrome.aspx
+[Marlett]:http://www.itmedia.co.jp/help/tips/windows/w0288.html
+[Alex Peattie]:http://modernuiicons.com/　
+[Button.Command]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.primitives.buttonbase.command.aspx
+[SystemCommands]:http://msdn.microsoft.com/ja-jp/library/system.windows.systemcommands.aspx
+
+
+[wpf-07-01]:http://s-ueno.github.io/images/wpf-07-01.png
+[wpf-07-02]:http://s-ueno.github.io/images/wpf-07-02.png
+[wpf-07-03]:http://s-ueno.github.io/images/wpf-07-03.png
+[wpf-07-04]:http://s-ueno.github.io/images/wpf-07-04.png
+[wpf-07-05]:http://s-ueno.github.io/images/wpf-07-05.png
+[wpf-07-06]:http://s-ueno.github.io/images/wpf-07-06.png
+[wpf-07-07]:http://s-ueno.github.io/images/wpf-07-07.png
+[wpf-07-08]:http://s-ueno.github.io/images/wpf-07-08.png
+[wpf-07-09]:http://s-ueno.github.io/images/wpf-07-09.png
+[wpf-07-10]:http://s-ueno.github.io/images/wpf-07-10.png
+[wpf-06-08]:http://s-ueno.github.io/images/wpf-06-08.png
+
+[@s-ueno/uENLab]:https://github.com/s-ueno/uENLab
