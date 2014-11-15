@@ -250,7 +250,7 @@ Styleで外観を刷新でき、処理も添付プロパティを利用して注
 ちなみに、Buttonクラスは[Button.Command]プロパティが用意されていて、ここに組み込み済みのICommandを割り当てることもできます。
 たとえば、[SystemCommands]などです。
 
-そうなのですが・・・・どうしてICoomandをプロパティに持つという条件付の機能にしたのでしょうか？
+そうなのですが・・・・MSもどうしてICoomandをプロパティに持つという条件付の機能にしたのでしょうか？
 それこそ添付プロパティとして、任意のルーティングイベントと紐付けられるように提供してくれれば、良かったのですが。
 
 なぜかというと、前回のようにボタンから不要な機能をすべて削り落としていくと
@@ -299,7 +299,7 @@ TextBlockとContentPresenterしか要素がないので、Commandを設定して
 [WPF ウィンドウの概要]:http://msdn.microsoft.com/ja-jp/library/ms748948.aspx
 [WindowChrome.WindowChrome]:http://msdn.microsoft.com/ja-jp/library/system.windows.shell.windowchrome.windowchrome.aspx
 [Marlett]:http://www.itmedia.co.jp/help/tips/windows/w0288.html
-[Alex Peattie]:http://modernuiicons.com/　
+[Alex Peattie]:http://modernuiicons.com/
 [Button.Command]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.primitives.buttonbase.command.aspx
 [SystemCommands]:http://msdn.microsoft.com/ja-jp/library/system.windows.systemcommands.aspx
 
