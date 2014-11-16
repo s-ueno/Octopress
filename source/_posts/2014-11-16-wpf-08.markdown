@@ -1,0 +1,306 @@
+---
+layout: post
+title: "ユーザーコントロールに学ぶ様々なコンテンツ - WPF Vol 07"
+date: 2014-11-15 03:19:00 +0900
+comments: true
+categories: WPF
+tags: [UserControl, WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+設定メニューの作成を通じて、ユーザーコントロールについて紹介します。
+
+
+![wpf-08-01]
+
+
+<!-- more -->
+
+
+WPFは柔軟で StyleやTemplate、添付プロパティで多くは対応できるのですが、場合によっては以下のようなレベルでコントロールを作成する場面も出てきます。
+
+
+ + ユーザーコントロール
+ + カスタムコントロール
+ + カスタム要素
+
+
+[MSDNにも記載]があります。
+
+
+また、これらをクラス ライブラリとして開発する場合と、アプリケーションとして開発する場合で適用するプログラミング デザインパターンも変わってきます。
+
+
+アプリケーションで開発する場合はMVVMプログラミング パターンを利用しますが、たとえばButtonクラスをクラスライブラリとして新規作成する場合に、果たしてMVVMで開発するかといえば、多くはそうではありません。
+
+
+ユーザーコントロール
+---
+
+VisualStudioで、新しい項目を追加する場合に選択できます。  
+ベースクラスがUserControlクラスになります。
+
+このシリーズでもBizViewとしてViewクラスのベースクラスに利用していて、アプリケーションでMVVMスタイルでの開発を支援しています。
+
+かといって、UserControlから派生したBizViewクラスの基本機能を実装する上でMVVMプログラミン パターンで作成しているかといえば、クラスライブラリとしての基本セットなので、そのようなことはしていません。
+
+
+ユーザーコントロールの実態はContentControlクラスで、たとえばWindow.Contentに設定する一般的なコンテンツです。
+
+新規Windowにデフォルトで追加されている`<Grid>`は、このWindowのContentです。
+
+
+![wpf-08-02]
+
+
+もちろん、GridなどのPanel要素もContentを持つので、ここに設定することもできます。
+
+MSDNにはTemplateで外観を変更できないとあり、確かにTemplateでは変更できないのですが、Contentなので、ContentTemplateやContentTemplateSelectorで外観は如何様にでも変更できます。
+
+でも、作ったユーザーコントロールを刷新しているようでは意味がありませんね。
+
+
+で、今回は画面の右側に表示する設定画面をユーザーコントロールで作成します。  
+画面は以下の構成で、コンテンツ部には指定したView/ViewModelのセットが簡単に追加できるように検討します。
+
+
+![wpf-08-03]
+
+
+ユーザーコントロールなので、Xamlで画面を開発する要領で作成します。
+
+Xamlも上から下まで30行程度です。
+
+ - グリッドをデザイン通りに上下分割
+ - 上部にタイトルとアイコン
+ - 下部に設定タイトル一覧とメインコンテンツ
+
+を配置しています。
+
+```
+<UserControl x:Class="uEN.UI.Controls.Settings"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:uen="clr-namespace:uEN.UI"
+             mc:Ignorable="d" 
+             Background="{DynamicResource AppBrand}"
+             Foreground="White"
+             BorderBrush="Transparent"
+             d:DesignHeight="300" d:DesignWidth="300">
+    <UserControl.Resources>
+        <uen:ViewDataTemplateSelector x:Key="templateSelector" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="10,30,0,30" Orientation="Horizontal">
+            <Button x:Name="IconButton" Width="35" Height="35" Margin="5" 
+                    Foreground="White"
+                    BorderBrush="White"
+                    Style="{DynamicResource EllipseButtonStyle}" 
+                    >
+                <Viewbox Stretch="Fill">
+                    <Path Style="{DynamicResource PathButtonStyle}"
+                          Data="F1 M 33.6458,38L 49.4792,53.8333L 38.7917,53.8333L 22.1667,38L 38.7917,22.1667L 49.4792,22.1667L 33.6458,38 Z "/>
+                </Viewbox>
+            </Button>
+            <TextBlock x:Name="Caption" Text="Settings" FontSize="20" VerticalAlignment="Center"/>
+        </StackPanel>
+        <ListBox Grid.Row="1" x:Name="SettingViewModels" Visibility="Visible" />
+        <ContentPresenter Grid.Row="1" x:Name="ViewModelPresenter"  
+                          ContentTemplateSelector="{StaticResource templateSelector}"
+                          />
+    </Grid>
+</UserControl>
+
+```
+
+アイコンのジオメトリも前回同様に[Alex Peattie]さんのものを利用しています。
+
+ボタンは丸く描画されるように `Style="{DynamicResource EllipseButtonStyle}"` としてスタイルを切り出し、コンテンツにジオメトリを設定しています。
+
+そのスタイルは単に  `<Setter Property="Template">` としてControlTemplateを設定する際に、Mindwos 8 Styleではフラットで角なしの線を描画するために `<Border>` としましたが、これを `<Ellipse>` として丸にすればそれだけでOKです。
+
+
+ボタンを押したときの内部動作はコードビハインド上で記述しています。
+これがクラスライブラリとしてのUserContrtolの作成です。
+
+ただし、これを利用するアプリケーション開発者はMVVMで利用できるようにしています。  
+どういうことかといえば、アプリケーション構成ファイルに任意のViewModelを設定すると、それが設定画面の一覧に表示されるようにしています。
+
+
+![wpf-08-04]
+
+
+次にこれをWindowのグリッドのコンテンツに配置します。
+
+
+ここで気にするのは、ボタンを押下する度に新しいWindowがモーダルででたり、画面上にパッとでたり消えたりするのは、利用者としては新鮮さにかけます。
+
+そこはストアアプリのようにアニメーションでユーザーに体感してもらうことを考えなくてはなりません。  
+今回は、そんなアニメーションを添付プロパティで実装しています。
+
+
+```
+
+ public enum TransitionStyle
+    {
+        None,
+
+        Slide,
+        VerticalSlide,
+
+        SlideOut,
+        VerticalSlideOut,
+    }
+
+    public class ViewTransition
+    {
+        public static TransitionStyle GetTransitionStyle(DependencyObject obj)
+        {
+            return (TransitionStyle)obj.GetValue(TransitionStyleProperty);
+        }
+
+        public static void SetTransitionStyle(DependencyObject obj, TransitionStyle value)
+        {
+            obj.SetValue(TransitionStyleProperty, value);
+        }
+
+        // Using a DependencyProperty as the backing store for TransitionStyle.  This enables animation, styling, binding, etc...
+        public static readonly DependencyProperty TransitionStyleProperty =
+            DependencyProperty.RegisterAttached("TransitionStyle", typeof(TransitionStyle), typeof(ViewTransition), new UIPropertyMetadata(TransitionStyle.None, OnTransitionStyleChanged));
+
+        private static void OnTransitionStyleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            var fw = d as FrameworkElement;
+            var style = e.NewValue as TransitionStyle?;
+            if (!style.HasValue || style == TransitionStyle.None)
+                return;
+
+            fw.Loaded -= fw_Loaded;
+            fw.Loaded += fw_Loaded;
+        }
+
+        static void fw_Loaded(object sender, RoutedEventArgs e)
+        {
+            var fw = (FrameworkElement)sender;
+            var style = (TransitionStyle)fw.GetValue(ViewTransition.TransitionStyleProperty);
+
+            Play(fw, style);
+        }
+
+        public static Storyboard Play(FrameworkElement target, TransitionStyle style, Action completedAction = null)
+        {
+            Storyboard storyboard = null;
+            switch (style)
+            {
+                case TransitionStyle.None:
+                    break;
+                case TransitionStyle.Slide:
+                    storyboard = CreateSlideStoryboard();
+                    break;
+                case TransitionStyle.VerticalSlide:
+                    storyboard = CreateVerticalSlideStoryboard();
+                    break;
+                case TransitionStyle.SlideOut:
+                    storyboard = CreateSlideStoryboard(false);
+                    break;
+                case TransitionStyle.VerticalSlideOut:
+                    storyboard = CreateVerticalSlideStoryboard(false);
+                    break;
+                default:
+                    break;
+            }
+            if (completedAction != null)
+                storyboard.Completed += (x, y) => completedAction();
+            storyboard.Begin(target);
+            return storyboard;
+        }
+
+        private static Storyboard CreateSlideStoryboard(bool isFadeIn = true)
+        {
+            var storyboard = new Storyboard();
+
+            var fromThickness = isFadeIn ? new Thickness(30, 0, -30, 0) : new Thickness(0);
+            var toThickness = isFadeIn ? new Thickness(0) : new Thickness(30, 0, -30, 0);
+
+            var slideAnimation = new ThicknessAnimation();
+            slideAnimation.From = fromThickness;
+            slideAnimation.To = toThickness;
+            slideAnimation.Duration = new Duration(TimeSpan.FromSeconds(0.3));
+
+            Storyboard.SetTargetProperty(slideAnimation, new PropertyPath(FrameworkElement.MarginProperty));
+            storyboard.Children.Add(slideAnimation);
+
+            var fromOpacity = isFadeIn ? 0 : 1;
+            var toOpacity = isFadeIn ? 1 : 0;
+
+            var opacityAnimation = new DoubleAnimation();
+            opacityAnimation.From = fromOpacity;
+            opacityAnimation.To = toOpacity;
+            opacityAnimation.Duration = new Duration(TimeSpan.FromSeconds(0.5));
+            Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath(FrameworkElement.OpacityProperty));
+            storyboard.Children.Add(opacityAnimation);
+
+            return storyboard;
+        }
+
+        private static Storyboard CreateVerticalSlideStoryboard(bool isFadeIn = true)
+        {
+            var storyboard = new Storyboard();
+
+            var fromThickness = isFadeIn ? new Thickness(0, 30, 0, 30) : new Thickness(0);
+            var toThickness = isFadeIn ? new Thickness(0) : new Thickness(0, 30, 0, 30);
+
+
+            var slideAnimation = new ThicknessAnimation();
+            slideAnimation.From = fromThickness;
+            slideAnimation.To = toThickness;
+            slideAnimation.Duration = new Duration(TimeSpan.FromSeconds(0.3));
+
+            Storyboard.SetTargetProperty(slideAnimation, new PropertyPath(FrameworkElement.MarginProperty));
+            storyboard.Children.Add(slideAnimation);
+
+            var fromOpacity = isFadeIn ? 0 : 1;
+            var toOpacity = isFadeIn ? 1 : 0;
+
+            var opacityAnimation = new DoubleAnimation();
+            opacityAnimation.From = fromOpacity;
+            opacityAnimation.To = toOpacity;
+            opacityAnimation.Duration = new Duration(TimeSpan.FromSeconds(0.5));
+            Storyboard.SetTargetProperty(opacityAnimation, new PropertyPath(FrameworkElement.OpacityProperty));
+            storyboard.Children.Add(opacityAnimation);
+
+            return storyboard;
+        }
+
+    }
+
+```
+
+Xaml上で設定すれば、画面の読み込み時に自動でアニメーションをするようになります。
+
+
+![wpf-08-05]
+
+また静的メソッドを利用して、任意のタイミングでも動作します。
+
+
+
+
+
+---
+[MSDNにも記載]:http://msdn.microsoft.com/ja-jp/library/ms745025.aspx
+[Alex Peattie]:http://modernuiicons.com/
+
+
+[wpf-08-01]:http://s-ueno.github.io/images/wpf-08-01.png
+[wpf-08-02]:http://s-ueno.github.io/images/wpf-08-02.png
+[wpf-08-03]:http://s-ueno.github.io/images/wpf-08-03.png
+[wpf-08-04]:http://s-ueno.github.io/images/wpf-08-04.png
+[wpf-08-05]:http://s-ueno.github.io/images/wpf-08-05.png

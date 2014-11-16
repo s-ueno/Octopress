@@ -465,7 +465,7 @@ IValueConverter としてはシステムで共通的なロジックの部品化�
 [Mode]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.binding.mode.aspx
 [RelativeSource]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.binding.relativesource.aspx
 [ValidationRules]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.binding.validationrules.aspx
-[MSDNのこの記事]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.binding.validationrules.aspx
+[MSDNのこの記事]:http://msdn.microsoft.com/ja-jp/library/ms752339.aspx
 [ComboBox]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.combobox.aspx
 [ValidationRule]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.validationrule.aspx
 [DataErrorValidationRule]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.dataerrorvalidationrule.aspx
