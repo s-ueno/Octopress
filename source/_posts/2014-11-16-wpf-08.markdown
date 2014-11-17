@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "ユーザーコントロールに学ぶ様々なコンテンツ - WPF Vol 07"
-date: 2014-11-15 03:19:00 +0900
+date: 2014-11-17 17:31:57 +0900
 comments: true
 categories: WPF
 tags: [UserControl, WPF]
@@ -31,8 +31,8 @@ WPFは柔軟で StyleやTemplate、添付プロパティで多くは対応でき
 
 また、これらをクラス ライブラリとして開発する場合と、アプリケーションとして開発する場合で適用するプログラミング デザインパターンも変わってきます。
 
-
-アプリケーションで開発する場合はMVVMプログラミング パターンを利用しますが、たとえばButtonクラスをクラスライブラリとして新規作成する場合に、果たしてMVVMで開発するかといえば、多くはそうではありません。
+本シリーズのビューの基本クラスとなるBizViewクラスはUserControl派生です。
+その基本機能を実装する上でMVVMパターンで作成しているかといえば、クラスライブラリとしての基本セットなのでそうではありません。
 
 
 ユーザーコントロール
@@ -41,28 +41,18 @@ WPFは柔軟で StyleやTemplate、添付プロパティで多くは対応でき
 VisualStudioで、新しい項目を追加する場合に選択できます。  
 ベースクラスがUserControlクラスになります。
 
-このシリーズでもBizViewとしてViewクラスのベースクラスに利用していて、アプリケーションでMVVMスタイルでの開発を支援しています。
-
-かといって、UserControlから派生したBizViewクラスの基本機能を実装する上でMVVMプログラミン パターンで作成しているかといえば、クラスライブラリとしての基本セットなので、そのようなことはしていません。
-
-
-ユーザーコントロールの実態はContentControlクラスで、たとえばWindow.Contentに設定する一般的なコンテンツです。
-
-新規Windowにデフォルトで追加されている`<Grid>`は、このWindowのContentです。
+主な目的は、より要件に具体的なビューを提供済みのコンテンツを組み合わせて構築することです。  
+たとえば、BizViewクラスから派生したView/ViewModelの各種コンテンツ(サンプルのVol04View/Vol05Viewなど)も同様に、目的とする画面をボタンやラベルといった提供済みコンテンツを配置して作成しています。
 
 
-![wpf-08-02]
+それと比べて、カスタムコントロールやカスタム要素は、WPFの組込済みコントロール(Buttonのベースクラスは)がそうであるように、基本となるコンテンツ作成として利用します。
 
 
-もちろん、GridなどのPanel要素もContentを持つので、ここに設定することもできます。
-
-MSDNにはTemplateで外観を変更できないとあり、確かにTemplateでは変更できないのですが、Contentなので、ContentTemplateやContentTemplateSelectorで外観は如何様にでも変更できます。
-
-でも、作ったユーザーコントロールを刷新しているようでは意味がありませんね。
+FrameworkElement派生ではパフォーマンスが向上しますが、実装する際には [DrawingVisual] クラスなどを利用して、描画を実装する必要が出てきます。
 
 
-で、今回は画面の右側に表示する設定画面をユーザーコントロールで作成します。  
-画面は以下の構成で、コンテンツ部には指定したView/ViewModelのセットが簡単に追加できるように検討します。
+さて、今回は画面の右側に表示する設定画面をユーザーコントロールで作成します。  
+画面は以下の構成で、コンテンツ部には指定したView/ViewModelのセットが追加できるよう検討します。
 
 
 ![wpf-08-03]
@@ -122,33 +112,37 @@ Xamlも上から下まで30行程度です。
 
 アイコンのジオメトリも前回同様に[Alex Peattie]さんのものを利用しています。
 
-ボタンは丸く描画されるように `Style="{DynamicResource EllipseButtonStyle}"` としてスタイルを切り出し、コンテンツにジオメトリを設定しています。
+ボタンは丸く描画されるように `Style="{DynamicResource EllipseButtonStyle}"` としてスタイルをリソースとして切り出し、コンテンツにジオメトリを設定しています。
 
-そのスタイルは単に  `<Setter Property="Template">` としてControlTemplateを設定する際に、Mindwos 8 Styleではフラットで角なしの線を描画するために `<Border>` としましたが、これを `<Ellipse>` として丸にすればそれだけでOKです。
+切り出したスタイルは単に  `<Setter Property="Template">` としてControlTemplateを設定する際に、Mindwos 8 Styleではフラットで角なしの線を描画するために `<Border>` としましたが、これを `<Ellipse>` として丸にすればそれだけでOKです。
 
 
-ボタンを押したときの内部動作はコードビハインド上で記述しています。
-これがクラスライブラリとしてのUserContrtolの作成です。
+ボタンを押したときの内部動作はコードビハインド上で記述しています。  
+(クラス ライブラリとしての開発)
 
-ただし、これを利用するアプリケーション開発者はMVVMで利用できるようにしています。  
-どういうことかといえば、アプリケーション構成ファイルに任意のViewModelを設定すると、それが設定画面の一覧に表示されるようにしています。
+
+アプリケーション構成ファイルに任意のViewModelを設定すると、それが設定画面の一覧に表示されるようにしました。
 
 
 ![wpf-08-04]
 
 
-次にこれをWindowのグリッドのコンテンツに配置します。
+あとは、これをWindow Style で定義しているグリッド上にコンテンツとして配置するだけです。
 
 
-ここで気にするのは、ボタンを押下する度に新しいWindowがモーダルででたり、画面上にパッとでたり消えたりするのは、利用者としては新鮮さにかけます。
+アニメーション
+---
 
-そこはストアアプリのようにアニメーションでユーザーに体感してもらうことを考えなくてはなりません。  
-今回は、そんなアニメーションを添付プロパティで実装しています。
+ボタンを押下する度に先ほど作成したユーザーコントロールがWindowとしてモーダル表示されたり、画面上にパッとでたり消えたりするのは、利用者としては新鮮さにかけます。
+XAMLで作成するアプリケーションのゴールは、やはり柔軟なアニメーションを利用者に体験してもらうことにあります。
+
+
+今回は、そんなアニメーションを添付プロパティとして切り出して実装しています。
 
 
 ```
 
- public enum TransitionStyle
+  public enum TransitionStyle
     {
         None,
 
@@ -189,7 +183,7 @@ Xamlも上から下まで30行程度です。
         static void fw_Loaded(object sender, RoutedEventArgs e)
         {
             var fw = (FrameworkElement)sender;
-            var style = (TransitionStyle)fw.GetValue(ViewTransition.TransitionStyleProperty);
+            var style = GetTransitionStyle(fw);
 
             Play(fw, style);
         }
@@ -254,8 +248,8 @@ Xamlも上から下まで30行程度です。
         {
             var storyboard = new Storyboard();
 
-            var fromThickness = isFadeIn ? new Thickness(0, 30, 0, 30) : new Thickness(0);
-            var toThickness = isFadeIn ? new Thickness(0) : new Thickness(0, 30, 0, 30);
+            var fromThickness = isFadeIn ? new Thickness(0, 30, 0, -30) : new Thickness(0);
+            var toThickness = isFadeIn ? new Thickness(0) : new Thickness(0, 30, 0, -30);
 
 
             var slideAnimation = new ThicknessAnimation();
@@ -283,20 +277,47 @@ Xamlも上から下まで30行程度です。
 
 ```
 
-Xaml上で設定すれば、画面の読み込み時に自動でアニメーションをするようになります。
+Xaml上で設定すれば、コンテンツの読み込み時に自動でアニメーションをするようになります。
 
 
 ![wpf-08-05]
 
+
 また静的メソッドを利用して、任意のタイミングでも動作します。
 
 
+まとめ
+---
+
+ユーザーコントロールで作成したストアアプリスタイルの設定画面を設け、スタイルの変更ができるようになりました。
+
+
+![wpf-08-06]
+
+
+![wpf-08-07]
+
+
+ただし、設定したユーザー固有のスタイルはまだ永続化していません。  
+また、TabControlを利用していますが、このコンテンツはどうしても旧来のWindows Formを彷彿させる、モダンではないビシュアルです。
+
+
+次回の宿題は、ユーザー固有のスタイルは [IsolatedStorage] の機能を利用して永続化したいと思います。
+それと、Controlから派生したItemsControlを利用して、モダンなカスタム コントロールを作成したいと思います。
+
+
+サンプル成果物はGit管理で。
+
+[@s-ueno/uENLab] on GitHub 
 
 
 
 ---
 [MSDNにも記載]:http://msdn.microsoft.com/ja-jp/library/ms745025.aspx
 [Alex Peattie]:http://modernuiicons.com/
+[DrawingVisual]:http://msdn.microsoft.com/ja-jp/library/system.windows.media.drawingvisual.aspx
+[IsolatedStorage]:http://msdn.microsoft.com/ja-jp/library/system.io.isolatedstorage.aspx
+
 
 
 [wpf-08-01]:http://s-ueno.github.io/images/wpf-08-01.png
@@ -304,3 +325,12 @@ Xaml上で設定すれば、画面の読み込み時に自動でアニメーシ�
 [wpf-08-03]:http://s-ueno.github.io/images/wpf-08-03.png
 [wpf-08-04]:http://s-ueno.github.io/images/wpf-08-04.png
 [wpf-08-05]:http://s-ueno.github.io/images/wpf-08-05.png
+[wpf-08-05]:http://s-ueno.github.io/images/wpf-08-05.png
+[wpf-08-06]:http://s-ueno.github.io/images/wpf-08-06.png
+[wpf-08-07]:http://s-ueno.github.io/images/wpf-08-07.png
+
+
+[@s-ueno/uENLab]:https://github.com/s-ueno/uENLab
+
+
+
