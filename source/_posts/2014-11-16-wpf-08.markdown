@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "ユーザーコントロールに学ぶ様々なコンテンツ - WPF Vol 07"
-date: 2014-11-17 17:31:57 +0900
+date: 2014-11-17 19:44:57 +0900
 comments: true
 categories: WPF
 tags: [UserControl, WPF]
