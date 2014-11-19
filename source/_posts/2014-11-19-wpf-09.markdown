@@ -1,0 +1,306 @@
+---
+layout: post
+title: "カスタムコントロールとおまけでIsolatedStorage - WPF Vol 08"
+date: 2014-11-17 19:44:57 +0900
+comments: true
+categories: WPF
+tags: [WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+カスタム コントロールを作成して TabControlと置き換えてみました。
+
+
+![wpf-09-01]
+
+
+<!-- more -->
+
+前回はユーザーコントロールでしたが、今度はカスタムコントロールです。
+
+
+VisualStudioで新しい項目の追加を選択すると
+
+
+![wpf-09-02]
+
+
+ユーザーコントロールとは別にカスタムコントロールが選べます。  
+
+ユーザーコントロールでは、Xamlファイル+コードビハインドが追加されました。
+カスタムコントロールでは、csファイルがメインで、そのStyleリソースがプロジェクト直下にThemesフォルダとGeneric.xamlという形で追加されます。
+
+
+TabControlの代わりにListContentカスタムコントロールを作成します。  
+追加されたGeneric.xamlはListContent.Xamlに名前を変更しました。
+
+![wpf-09-03]
+
+
+
+csファイルの中身は、静的コンストラクタとデフォルトスタイル キーの宣言、長いコメントが付いてきます。
+
+
+![wpf-09-04]
+
+
+ベースクラスはControlクラスから[Selector] クラスに変更しました。
+
+Controlクラスから複数のアイテムを操作するための一連の機能を実装しているItemsControl、さらにそこに選択するという一連の依存関係プロパティを実装しているSelectorクラスを、今回のベースクラスとして採用しています。
+
+
+Tabコントロールと同等レベルでよければ、このcsファイルは何も実装しなくても問題ありません。
+追加されたリソースディクショナリにXamlでStyleとTemplateを実装していくと、それだけで問題なく動作できます。
+
+
+ちなみに、これを利用するアプリケーション側は1行、TabControlからListContentに書き換えるだけです。
+
+
+![wpf-09-05]
+
+
+あとは、デザインをイメージしてXamlのスタイルを記述していきます。  
+今回は上部に各タブのタイトルが並び、それを選択するとメインコンテンツに対象のViewが表示される形です。
+
+
+```
+    <ui:ViewDataTemplateSelector x:Key="templateSelector" />
+    <Style TargetType="{x:Type local:ListContent}">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type local:ListContent}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <ListBox x:Name="TitleContent" 
+                                 Background="Transparent"
+                                 HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                 ItemsSource="{TemplateBinding ItemsSource}"
+                                 ItemContainerStyle="{StaticResource ListContentHeaderStyle}"
+                                 >
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+                        <ContentPresenter x:Name="MainContent" Grid.Row="1" 
+                                          Content="{TemplateBinding SelectedItem}"
+                                          ContentTemplateSelector="{StaticResource templateSelector}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+```
+
+
+ポイントがいくつかあります。
+
+ + [KeyboardNavigation.TabNavigation] 添付プロパティ
+ + ListBox
+ + ContentPresenter
+
+
+[KeyboardNavigation.TabNavigation] 添付プロパティ
+---
+
+WPFはツリー構造なのでTabを押下していくと最初にトップレベルのコンテンツにタブが移動してきます。そこで、この添付プロパティ値をLocal設定すると、Tabで今回作成したListContentにフォーカスが入った際に、次のコンテンツではなく、ListContent内部へTabが移動するようになります。
+
+
+
+ListBox / [ListBox.ItemContainerStyle]
+---
+
+今回は上部にヘッダー用のメニューをデザインしています。
+ListContentはベースクラスにItemsControlを持つので、そこにバインドされたコレクションの一覧を持ちます。
+
+
+その一覧をListBoxのItemsSourceにTemplateBindingで転送しています。
+ListBoxなので、各行のスタイルを自由にデザインできます。
+このスタイルが、上部のメニューのスタイルになります。そのStyleを決定するのが[ListBox.ItemContainerStyle]プロパティです。
+
+
+```
+<ListBox.ItemContainerStyle>
+	<Style TargetType="{x:Type ListBoxItem}">
+```
+
+
+として直接記述することもできますし、`<Style  x:Key="ListContentHeaderStyle" TargetType="{x:Type ListBoxItem}">` として別の箇所に記述したものを利用することもできます。
+
+今回は整理するためにも後述の別箇所に切り出しました。
+
+そのStyleも淡々とデザインします。
+アイコンを設定できる枠を用意してもいいし、選択されているときだけ背景色を設定するとかでもいいかもしれません。
+
+
+
+ContentPresenter
+---
+
+Contentには選択してるアイテムをTemplateBindingで転送しています。  
+その実態はバインド ソースである [ListCollectionView] 経由でViewModelコレクションの中の選択されている一つです。
+
+
+ContentTemplateSelectorプロパティを利用することで、コンテンツをどう表示させるかを選択させています。
+
+
+この仕組みだけで表示はできるのですが、コンテンツの細かい一つ一つをどう表示するかを作りこむことで、ユーザーに体感してもらうことができます。
+
+今回はメニューの一つ一つが滑らかなアニメーションで表示されるように作りこみました。  
+些細なことですが、シンプルでも退屈させず、それがコンテンツであることを認識してもらうことができます。
+
+
+今回はアニメーションの作りこみのために、ListContent.csファイルにコードを追加しています。
+アニメーションは[Storyboard] クラス、[AnimationTimeline] クラスと利用するのですが、滑らかにするためのコツとして[イージング関数]があります。
+
+機械的な動作ではなく、慣性的なアニメーションで滑らかな印象を与えることができます。
+
+
+XAMLは技術依存ですが資産としてクラス ライブラリに集めていくと、利用するアプリケーション開発は自動でポリシーのように利用できるようになります。
+
+
+いくつかの基本的な技術資産を実装した段階で、具体的なアプリケーションの作成を考えています。
+その際にはラフでいい加減なユースケース シナリオを用いたお手軽分析しながら作成したいと思います。
+
+
+代表的な残りは・・・
+
+ + ストアアプリ風メッセージボックス
+ + 画面遷移
+ + 例外専用ダイアログ
+ + TextBox
+	- Modern Style化
+	- IMEの注入
+	- 型桁対応
+	- AutoComplete
+ + DataGrid
+	- Modern Style化
+ + ToggleButton系
+ + ComboBox
+
+などでしょうか。
+
+
+
+[IsolatedStorage]
+---
+おまけで、紹介します。
+
+MSDNを見てもよくわかりませんが、簡単に言うとアプリケーション毎のセキュアな読書用Streamを与えてくれる機能です。Streamなので、具体的なファイルパスを意識する必要がないのが便利です。
+
+また、実際に永続化してくれているので、アプリケーションの次回起動時にその情報を利用できます。
+
+
+今回は拡張メソッドで用意しました。
+
+```
+
+    public static class BackingStore
+    {
+        public static void SetBackingStore<T>(this T obj, object value, [CallerMemberName] string key = null) where T : class
+        {
+            var appStore = IsolatedStorageFile.GetUserStoreForAssembly();
+            var directoryPath = typeof(T).FullName;
+            if (!appStore.DirectoryExists(directoryPath))
+            {
+                appStore.CreateDirectory(directoryPath);
+            }
+
+            using (var stream = new IsolatedStorageFileStream(Path.Combine(directoryPath, key), FileMode.OpenOrCreate, appStore))
+            {
+                var formatter = new BinaryFormatter();
+                formatter.Serialize(stream, value);
+            }
+        }
+        public static object GetBackingStore<T>(this T obj, [CallerMemberName] string key = null) where T : class
+        {
+            var appStore = IsolatedStorageFile.GetUserStoreForAssembly();
+            var directoryPath = typeof(T).FullName;
+            if (!appStore.DirectoryExists(directoryPath))
+            {
+                appStore.CreateDirectory(directoryPath);
+            }
+
+            object result = null;
+            try
+            {
+                using (var stream = new IsolatedStorageFileStream(Path.Combine(directoryPath, key), FileMode.OpenOrCreate, appStore))
+                {
+                    var formatter = new BinaryFormatter();
+                    result = formatter.Deserialize(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return result;
+        }
+
+        public static void RemoveBackingStore<T>(this T obj) where T : class
+        {
+            var appStore = IsolatedStorageFile.GetUserStoreForAssembly();
+            appStore.Remove();
+        }
+
+    }
+
+```
+
+
+プロパティのバッキングストアのように利用します。
+
+```
+public int MyProperty
+{
+    get { return (int)this.GetBackingStore(); }
+    set { this.SetBackingStore(value); }
+}
+
+```
+
+ただ FileIOしますし、排他制御もしていないので、マルチスレッドはもちろん頻繁にアクセスするような機能でないことは確かです。
+
+今回はSettingで選択した情報を保存・復元する機能を持ちます。
+具体的な永続化の場所はユーザーのAppDataフォルダの中に保存されています。
+
+
+
+
+
+
+
+---
+[MSDNにも記載]:http://msdn.microsoft.com/ja-jp/library/ms745025.aspx
+[Selector]: http://msdn.microsoft.com/ja-jp/library/system.windows.controls.primitives.selector.aspx
+[KeyboardNavigation.TabNavigation]:http://msdn.microsoft.com/ja-jp/library/system.windows.input.keyboardnavigation.tabnavigation.aspx
+
+[ListBox.ItemContainerStyle]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.itemcontainerstyle.aspx
+
+[ListCollectionView]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.listcollectionview.aspx
+[Storyboard]:http://msdn.microsoft.com/ja-jp/library/ms742868.aspx
+[AnimationTimeline]:http://msdn.microsoft.com/ja-jp/library/system.windows.media.animation.animationtimeline.aspx#inheritanceContinued
+[イージング関数]:http://msdn.microsoft.com/ja-jp/library/system.windows.media.animation.easingfunctionbase.aspx#inheritanceContinued
+
+
+[IsolatedStorage]:http://msdn.microsoft.com/ja-jp/library/system.io.isolatedstorage.aspx
+
+[wpf-09-01]:http://s-ueno.github.io/images/wpf-09-01.png
+[wpf-09-02]:http://s-ueno.github.io/images/wpf-09-02.png
+[wpf-09-03]:http://s-ueno.github.io/images/wpf-09-03.png
+[wpf-09-04]:http://s-ueno.github.io/images/wpf-09-04.png
+[wpf-09-05]:http://s-ueno.github.io/images/wpf-09-05.png
+
+
+
+
+[@s-ueno/uENLab]:https://github.com/s-ueno/uENLab
+
