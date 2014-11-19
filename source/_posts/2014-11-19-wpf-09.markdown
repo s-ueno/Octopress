@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "カスタムコントロールとおまけでIsolatedStorage - WPF Vol 08"
-date: 2014-11-17 19:44:57 +0900
+date: 2014-11-20 02:02:02 +0900
 comments: true
 categories: WPF
 tags: [WPF]
