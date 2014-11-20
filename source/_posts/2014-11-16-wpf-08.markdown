@@ -306,17 +306,10 @@ Xaml上で設定すれば、コンテンツの読み込み時に自動でアニ�
 それと、Controlから派生したItemsControlを利用して、モダンなカスタム コントロールを作成したいと思います。
 
 
-今回のポイントは[KeyboardNavigation] クラスを利用した各種添付プロパティです。
-
-
-
-
 サンプル成果物はGit管理で。
 
 [@s-ueno/uENLab] on GitHub 
 
-
-次回は、画面遷移を実装します。
 
 
 ---
@@ -324,7 +317,7 @@ Xaml上で設定すれば、コンテンツの読み込み時に自動でアニ�
 [Alex Peattie]:http://modernuiicons.com/
 [DrawingVisual]:http://msdn.microsoft.com/ja-jp/library/system.windows.media.drawingvisual.aspx
 [IsolatedStorage]:http://msdn.microsoft.com/ja-jp/library/system.io.isolatedstorage.aspx
-[KeyboardNavigation]:http://msdn.microsoft.com/ja-jp/library/system.windows.input.keyboardnavigation.aspx
+
 
 
 [wpf-08-01]:http://s-ueno.github.io/images/wpf-08-01.png
