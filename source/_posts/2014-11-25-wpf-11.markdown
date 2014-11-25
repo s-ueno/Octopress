@@ -1,0 +1,166 @@
+---
+layout: post
+title: "MEF で優先度を設けて取得できないか"
+date: 2014-11-25 23:22:15 +0900
+comments: true
+categories: MEF
+tags: [MEF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+[MEF] はMSDNだけみて使ってみたのですが、
+もう少し使い勝手が良くならないか勉強しました。
+
+<!-- more -->
+
+
+[MEF] の基本は、実体化したいオブジェクトの取得元となる情報を [ComposablePartCatalog] クラスから派生した
+[AssemblyCatalog] クラス や[TypeCatalog] クラス を用いてアセンブリやTypeの情報を
+[CompositionContainer] というコンテナに登録、このコンテナから実体化する
+ことまでは直観的にわかりました。
+
+
+ただ、Get××とかCreate××のような如何にもインスタンス取得できそうなメソッドがなく、
+MSDNのサンプルでは [container.ComposeParts] メソッド 呼び出すことで
+メンバーに実体が割り当てられるという、あまり使い勝手がよくない状態でした。
+
+
+当たり前のDIとして、以下のようなことができないのか
+
+```
+    interface ITest
+    {
+    }
+    class TestA : ITest
+    {
+    }
+    class TestB : TestA
+    {
+    }
+
+
+static void Sample()
+{
+    //優先度をもってTestA、TestBのいずれかを取得したい
+    var service = Create<ITest>();
+
+```
+
+いろいろわかりました。
+
+まず、[container.ComposeParts] メソッド を利用しないサービス取得の場合は、Import属性は不要でした。
+そもそも、[container.ComposeParts] メソッド を利用するシーンの方が少ないような気もします。
+
+
+何はともあれ、[PartCreationPolicy属性]も付けます。  
+この属性を付与しない場合、コンテナからインスタンスを取得するとすべて同じインスタンスを返します。
+
+
+これがデフォルト動作で、これでは困るので先ほどの属性を利用して、実体化する場合は新しいインスタンスとなるように明示します。
+
+
+次に [ExportMetadata属性] でオブジェクトに追加情報を付与します。  
+
+
+以下がサンプルの宣言です。
+
+```
+
+[PartCreationPolicy(CreationPolicy.NonShared)]
+[ExportMetadata("Priority", 1)]
+[Export(typeof(TestA))]
+class TestA  { }
+
+[PartCreationPolicy(CreationPolicy.NonShared)]
+[ExportMetadata("Priority", 0)]
+[Export(typeof(TestA))]
+class TestB : TestA { }
+```
+
+ExportMetadata属性で、"Priority" という優先度の付加情報を付与しました。  
+この取得方法が面白いです。
+
+```
+
+public interface IPriority { int Priority { get; } }
+
+```
+
+このように、"Priority" というプロパティ名を持つインターフェイスを宣言します。
+ちなみに、このインターフェイスはどこも実装はされていません。
+
+このインターフェイスが判断材料用のオブジェクトとして、コンテナによって動的に実態化されます。
+
+
+以下がサンプルになります。
+```
+    public static class Hoge
+    {
+        [PartCreationPolicy(CreationPolicy.NonShared)]
+        [ExportMetadata("Priority", 1)]
+        [Export(typeof(TestA))]
+        class TestA  { }
+
+        [PartCreationPolicy(CreationPolicy.NonShared)]
+        [ExportMetadata("Priority", 0)]
+        [Export(typeof(TestA))]
+        class TestB : TestA { }
+
+        public static void Sample()
+        {
+            var service = Create<TestA>();
+
+        }
+
+        /// <summary>静的コンストラクタ</summary>
+        static Hoge()
+        {
+            var catalog = new AssemblyCatalog(Assembly.GetExecutingAssembly());
+            Container = new CompositionContainer(catalog);
+        }
+        private static readonly CompositionContainer Container;
+
+        public interface IPriority { int Priority { get; } }
+        public static T Create<T>()
+        {
+            var list = Container.GetExports<T, IPriority>();
+            var mostPriority = list.OrderBy(x => x.Metadata.Priority)
+                                   .FirstOrDefault();
+            return mostPriority != null ? mostPriority.Value : default(T);
+        }
+    }
+
+```
+
+[GetExports] メソッドの型パラメーター 1 は、取得したい型で、
+2つ目の引数は判断材料となる[ExportMetadata属性] の情報を転送できる
+任意のインターフェイスなりクラスとなります。
+
+ここに IPriority インターフェイスを設定すると、コンテナがGUIDを利用して動的クラスを構築、生成し、
+そのメンバに属性値を割り当ててくれます。
+
+
+そのため、その任意の判断材料を利用して複数のクラスからある特定のクラスを返すことができるようになります。
+
+
+今回は Priority という優先度のサンプルでしたが、たとえばデータベースのサービス名などを文字として
+切り分け判断材料に利用すれば、データベース非依存のサービスなどいろいろと応用ができそうです。
+
+
+
+
+
+
+
+---
+[MEF]:http://msdn.microsoft.com/ja-jp/library/dd460648.aspx
+[ComposablePartCatalog]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.primitives.composablepartcatalog.aspx
+[AssemblyCatalog]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.hosting.assemblycatalog.aspx
+[TypeCatalog]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.hosting.typecatalog.aspx
+[CompositionContainer]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.hosting.compositioncontainer.aspx
+[container.ComposeParts]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.attributedmodelservices.composeparts.aspx
+[ExportMetadata属性]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.exportmetadataattribute.aspx
+[PartCreationPolicy属性]:http://msdn.microsoft.com/ja-jp/library/system.componentmodel.composition.partcreationpolicyattribute.aspx
+[GetExports]:http://msdn.microsoft.com/ja-jp/library/dd833149.aspx
+
