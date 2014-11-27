@@ -1,0 +1,61 @@
+---
+layout: post
+title: "jekyll の Paginate が仕事しない"
+date: 2014-11-27 20:28:15 +0900
+comments: true
+categories: jekyll-paginate
+tags: [jekyll-paginate]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+jekyll-paginate が仕事しない事にここ数日悩まされました...
+
+
+<!-- more -->
+
+
+WPF でパンくずリストを画面遷移に採用したのを執筆したかったのですが
+(git 上は開発ブランチからメイン トランクにリリースしました。)
+本業で3連休つぶれるし jekyll-paginate が仕事しないし、散々でした。
+
+
+_config.yml で 
+
+
+```
+
+paginate: 10 
+paginate_path: "posts/:num"
+
+```
+
+と、宣言するとページネーターが 10 記事より過去の記事を 前のページ みたいに
+自動生成してくれるハズだったのですが、これが0Byteのファイルしかできなくて（涙）
+
+
+原因は plugins の category_generator.rb と tag_generator.rb だとわかったのですが
+解決の方向性を誤りまして・・・。
+
+なんとか、ジェネレートできないかgemのバージョンやjekyllのrubyのソースにバグがないかとか
+index.htmlの構文誤りがないかとか、あさっての方向に全力疾走しまして。
+
+
+無駄に3夜ほど費やしました。
+
+
+原因わかってるなら、問題のプラグインをrb.bkか何かにリネームしてページネーターが
+ジェネレートした過去記事用のHTMLだけ git にチェックインすればいいのでは？
+
+
+と気づいたのが今日でした。
+
+
+gitユーザーには周知の事実だったのかもしれないのですが(涙)
+
+
+jekyllやrubyはバージョンにも泣かされたし、どこかのタイミングでjekyll写経して
+ruby勉強しないとイケないかもしれません。
+
+
