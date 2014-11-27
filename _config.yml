@@ -4,9 +4,9 @@
 
 url: http://s-ueno.github.io
 title: uEN Laboratory
-subtitle: A blogging framework for hackers!
+subtitle: C#,WPF,Architecture,design,User experience, ets...
 author: uEN
-simple_search: https://www.google.com/search
+simple_search: https://www.google.com/search?q=http://s-ueno.github.io/
 description: 不定期でC#関連の情報を展開します。
 
 
@@ -82,7 +82,7 @@ default_asides: [
 # ----------------------- #
 
 # Github repositories
-github_user: s-ueno/uENLab
+github_user: s-ueno
 github_repo_count: 3
 github_show_profile_link: true
 github_skip_forks: true
