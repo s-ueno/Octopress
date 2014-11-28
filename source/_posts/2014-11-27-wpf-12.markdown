@@ -2,6 +2,7 @@
 layout: post
 title: "jekyll の Paginate が仕事しない"
 date: 2014-11-27 20:28:15 +0900
+updated: 2014-11-28 16:32:40 +0900
 comments: true
 categories: jekyll-paginate
 tags: [jekyll-paginate]
