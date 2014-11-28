@@ -1,0 +1,212 @@
+---
+layout: post
+title: "WPF パンくずリストで画面遷移"
+date: 2014-11-29 02:35:15 +0900
+updated: 
+comments: true
+categories: WPF
+tags: [WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+ナビゲーターとしてのインターフェイス + Styleによるパンくずリストの外観を
+併せ持つパンくずリストクラスです。
+
+
+![wpf-13-01]
+
+
+<!-- more -->
+
+
+ベースクラスを [ItemsControl] とするカスタム コントロールとして作成しました。  
+上部にメニューを配置し、中央部がメインコンテンツという最もシンプルなパターンです。
+
+いつものごとく、Styleを利用して グリッド レイアウトで区切っていきます。
+
+
+![wpf-13-02]
+
+
+ここで、メインコンテンツと右上部のアイコンは増減しませんが、左上部のパンくずメニューは遷移によって
+コンテンツが増減する、 [ItemsControl] の実体の部分になります。
+
+
+この実態部のコンテンツを表すのが [ItemsPresenter] クラスです。
+
+
+ItemsControl.Items プロパティにButtonを10個投入した場合、この [ItemsPresenter] の箇所にButtonが10個表示されます。
+
+
+ちなみに ItemsControl の実体が ItemsPresenter であり、
+ContentControl の実体は ContentPresenter という、シンプルな名前です。
+
+
+次に Item をどのようなパネルに展開するのかを決定するのが、 ItemsControl.ItemsPanel プロパティです。
+
+メニューなので横に展開することができる `<WrapPanel Orientation="Horizontal" />` を指定することで、要件を満たせます。
+
+
+あとは右上に アイコンボタン(Designed by [Alex Peattie] )
+中央に ViewModel を指定するとそのViewを表示することができるカスタムの DataTemplateSelector 
+を指定した ContentPresenter を配置すると カスタム コントロールとしての外観は完成です。
+
+
+60行程度のとてもシンプルな定義です。
+
+
+```
+<ui:ViewDataTemplateSelector x:Key="templateSelector" />
+<Style TargetType="{x:Type local:Breadcrumb}">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="KeyboardNavigation.TabNavigation" Value="Local" />
+    <Setter Property="ItemsPanel">
+        <Setter.Value>
+            <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter.Value>
+    </Setter>
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="{x:Type local:Breadcrumb}">
+                <Grid Margin="7">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ItemsPresenter Name="MyPresenter" Margin="20,0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="1">
+                        <Button x:Name="HomeButton" Width="35" Height="35" 
+                                HorizontalContentAlignment="Right"
+                                Foreground="{DynamicResource AppForeground}"
+                                BorderBrush="Transparent"
+                                Style="{DynamicResource EllipseButtonStyle}" 
+                                >
+                            <Viewbox Stretch="Fill">
+                                <Path Style="{DynamicResource PathButtonStyle}"
+                                      Data="F1 M 24.0033,56.0078L 24.0033,38.0053L 22.0031,40.0056L 19.0027,35.0049L 38.0053,20.0028L 45.0063,25.5299L 45.0063,21.753L 49.0068,21.0029L 49.0068,28.6882L 57.008,35.0049L 54.0075,40.0056L 52.0073,38.0053L 52.0073,56.0078L 24.0033,56.0078 Z M 38.0053,26.9204L 27.0038,36.005L 27.0038,53.0074L 33.0046,53.0074L 33.0046,42.006L 43.006,42.006L 43.006,53.0074L 49.0068,53.0074L 49.0068,36.005L 38.0053,26.9204 Z " />
+                            </Viewbox>
+                        </Button>
+                        <Button x:Name="NewWindowButton" Width="35" Height="35" 
+                                HorizontalContentAlignment="Right"
+                                Foreground="{DynamicResource AppForeground}"
+                                BorderBrush="Transparent"
+                                Style="{DynamicResource EllipseButtonStyle}" 
+                                >
+                            <Viewbox Stretch="Fill">
+                                <Path Style="{DynamicResource PathButtonStyle}"
+                                      Data="F1 M 44.3333,19L 57,19L 57,31.6667L 52.25,36.4167L 52.25,27.7083L 34.8333,45.125L 30.875,41.1667L 48.2917,23.75L 39.5833,23.75L 44.3333,19 Z M 19,25.3333L 42.75,25.3333L 38,30.0833L 23.75,30.0833L 23.75,52.25L 45.9167,52.25L 45.9167,38L 50.6667,33.25L 50.6667,57L 19,57L 19,25.3333 Z " />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                    <ContentPresenter x:Name="MainContent" Grid.Row="1" Grid.ColumnSpan="2" Margin="10"
+                                      Content="{TemplateBinding MainContent}"
+                                      ContentTemplateSelector="{StaticResource templateSelector}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
+
+```
+
+
+ナビゲーターとしてのインターフェイス　+　いつものごとくアニメーションをC#のコード上で実装すれば完成です。
+
+ポイントがいくつかあるので紹介します。
+
+
+ + MEFの利用
+ + アニメーション
+ + NewWindowボタン
+ + [WeakReference]の利用
+
+
+MEFの利用
+---
+Use添付プロパティを公開し、trueが設定されると自分自身をMEF経由でインスタンス化するようにしています。
+
+
+![wpf-13-03]
+
+
+設定側
+
+![wpf-13-04]
+
+
+
+アニメーション
+---
+パンくずメニューに新しくアイテムが追加されると、画面右側からButtonが飛んでくるアニメーションです。
+これもシンプルで ItemsControl.Items プロパティ に Button を Add するタイミングで、 Storyboard を適用すればOKです。
+
+
+
+NewWindowボタン
+---
+LOBアプリでは画面を見比べることもあるだろうと、NewWindowボタンを用意しました。
+ボタン押下で表示しているメインコンテンツが新しいWindowsとして起動する機能です。
+
+
+![wpf-13-05]
+
+
+今は単純に新しいWindow表示していますが、どこかのタイミングでガバーフローとして
+画面をスタックし、アニメーション表示する機能に差し替えたいと思います。
+
+
+
+
+[WeakReference]の利用
+---
+
+
+最後に、[WeakReference]についてです。
+
+過去に紹介しましたが、親ViewModel が 子ViewModel を New し、それを ListCollectionView 経由で Tab 風に表示させたりしています。
+ライフサイクル管理の基本は、Newした人が破棄まで担当するので、この場合は 親ViewModel が子ViewModelの破棄までを担当します。
+
+このときに、ナビゲーターが直接子ViewModelのインスタンスへの参照を持ってしまうと、
+メモリに残り続けてガベージコレクタの対象にならないようなことも十分に起こりえます。
+
+
+ナビゲーターは指示されればViewModelを参照して遷移しますが、その参照は"弱い参照"である必要があります。
+そこで利用するのが、[WeakReference]です。
+
+
+このクラス経由で参照する場合、ガベージコレクタは参照にカウントしないので、不要なメモリリークを防ぐことができます。
+
+
+あと、いくつかの基本的な機能（TextBox、DataGrid、ToggleButton系）のModern Style化と拡張を紹介できれば、アプリケーション作成に入りたいと思います。
+
+
+サンプルはコチラ
+<a href="https://github.com/s-ueno/uENLab" rel="tooltip" title="uENLab">
+  <img class="social_icon" alt="github icon" src="http://s-ueno.github.io/images/glyphicons_381_github.png">
+</a>
+
+
+
+---
+[ItemsControl]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.aspx
+[ItemsPresenter]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemspresenter.aspx
+[Alex Peattie]:http://modernuiicons.com/
+[WeakReference]:http://msdn.microsoft.com/ja-jp/library/system.weakreference.aspx
+[MEF]:http://msdn.microsoft.com/ja-jp/library/dd460648.aspx
+
+[wpf-13-01]:http://s-ueno.github.io/images/wpf-13-01.png
+[wpf-13-02]:http://s-ueno.github.io/images/wpf-13-02.png
+[wpf-13-03]:http://s-ueno.github.io/images/wpf-13-03.png
+[wpf-13-04]:http://s-ueno.github.io/images/wpf-13-04.png
+[wpf-13-05]:http://s-ueno.github.io/images/wpf-13-05.png
+
+
