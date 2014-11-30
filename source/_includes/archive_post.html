@@ -1,9 +1,21 @@
+{% capture date %}{{ page.date }}{{ post.date }}{% endcapture %}
+{% capture updated %}{{ page.updated }}{{ post.updated }}{% endcapture %}
+{% capture was_updated %}{{ updated | size }}{% endcapture %}
 {% capture category %}{{ post.categories | size }}{% endcapture %}
+
 <h2><a href="{{ site.url }}{{ post.url }}">{% if site.titlecase %}{{ post.title | titlecase }}{% else %}{{ post.title }}{% endif %}</a></h2>
 
-<time datetime="{{ post.date | datetime | date_to_xmlschema }}" pubdate>
-	{{ post.date | date: "<span class='month'>%b</span> <span class='day'>%d</span> <span class='year'>%Y</span>"}}
+<time datetime="{{ date | datetime | date_to_xmlschema }}" pubdate>
+	posted : {{ date | date: "<span >%Y-%m-%d</span> <span >%-I:%M %P</span>"}}
 </time>
+
+
+{% if was_updated != '0' %}
+    <time datetime="{{ updated | datetime | date_to_xmlschema }}" class="updated">
+        / updated : {{ updated | date: "<span >%Y-%m-%d</span> <span >%-I:%M %P</span>"}}
+    </time>
+{% endif %}
+
 
 {% if category != '0' %}
 <footer>
