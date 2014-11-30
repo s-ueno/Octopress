@@ -11,8 +11,9 @@
 
 
 {% if was_updated != '0' %}
+
     <time datetime="{{ updated | datetime | date_to_xmlschema }}" class="updated">
-        / updated : {{ updated | date: "<span >%Y-%m-%d</span> <span >%-I:%M %P</span>"}}
+        &emsp; updated : {{ updated | date: "<span >%Y-%m-%d</span> <span >%-I:%M %P</span>"}}
     </time>
 {% endif %}
 
