@@ -1,0 +1,170 @@
+---
+layout: post
+title: "Modern Style TextBox"
+date: 2014-12-02 21:10:27 +0900
+updated: 
+comments: true
+categories: WPF
+tags: [WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+TextBox の Style を Modern Style 対応します。
+
+<!-- more -->
+
+
+まずは土台を取得したいので、VisualStudio のデザイナ上で TextBox を右クリック
+ ⇒ テンプレートの編集 ⇒ コピーして編集で生成されるテンプレートを利用したいと思います。
+
+
+![wpf-14-01]
+
+
+ちなみに、現在適用されているデフォルトのテーマで出力されるので、Windows 7 と 8 では違った値がでると思います。
+で、8で出力されたのがコレ
+
+```
+        <SolidColorBrush x:Key="TextBox.Static.Border" Color="#FFABAdB3"/>
+        <SolidColorBrush x:Key="TextBox.MouseOver.Border" Color="#FF7EB4EA"/>
+        <SolidColorBrush x:Key="TextBox.Focus.Border" Color="#FF569DE5"/>
+        <Style x:Key="TextBoxStyle1" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TextBox.Static.Border}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="AllowDrop" Value="true"/>
+            <Setter Property="ScrollViewer.PanningMode" Value="VerticalFirst"/>
+            <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Opacity" TargetName="border" Value="0.56"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.MouseOver.Border}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.Focus.Border}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsInactiveSelectionHighlightEnabled" Value="true"/>
+                        <Condition Property="IsSelectionActive" Value="false"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="SelectionBrush" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+```
+
+VS2013 Update 4 ですが、自動生成した MultiTrigger の Condition の設定値が実は逆というバグは愛嬌ということで(ニコッ)
+
+
+まず、シンプルなのが一目でわかります。  
+Triggerも非活性時には不透明度を設定することでそれっぽく見せるなど、小粋です。
+リソースのキーが `x:Key="TextBox.MouseOver.Border"` とか `x:Key="TextBox.Focus.Border"` など、.で区切るところが
+個人的にとても気に入りました。
+
+
+ちなみに、ほとんど変える箇所はなく、現在 Background や Foreground が静的参照なので、これを
+アプリケーションで統一的なキーに DynamicResource で置き換えるだけです。
+
+
+WPFの組み込みコントロールで、特にLOB開発に利用するコントロールなどは限られているので、
+こんな感じで、技術資産をためていくと、後の開発で楽にガバナンスを効かせられます。
+
+
+![wpf-14-02]
+
+で、作成したのがコレ。
+
+```
+
+    <Style TargetType="{x:Type TextBox}">
+        <Setter Property="Background"       Value="{DynamicResource TextBox.Background}"/>
+        <Setter Property="BorderBrush"      Value="{DynamicResource TextBox.BorderBrush}"/>
+        <Setter Property="Foreground"       Value="{DynamicResource AppForeground}"/>
+        <Setter Property="BorderThickness"  Value="1"/>
+
+        <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+        <Setter Property="HorizontalContentAlignment"       Value="Left"/>
+        <Setter Property="FocusVisualStyle"                 Value="{x:Null}"/>
+        <Setter Property="AllowDrop"                        Value="true"/>
+        <Setter Property="ScrollViewer.PanningMode"         Value="VerticalFirst"/>
+        <Setter Property="Stylus.IsFlicksEnabled"           Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TextBox}">
+                    <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="false" 
+                                      HorizontalScrollBarVisibility="Hidden" 
+                                      VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter Property="Opacity" TargetName="border" Value="0.56"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Background" TargetName="border" Value="{DynamicResource TextBox.MouseOver.Background}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="true">
+                            <Setter Property="BorderBrush" TargetName="border" Value="{DynamicResource TextBox.Focus.Border}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsInactiveSelectionHighlightEnabled" Value="false"/>
+                    <Condition Property="IsSelectionActive" Value="true"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="SelectionBrush" Value="{DynamicResource TextBox.SelectionBrush}"/>
+            </MultiTrigger>
+        </Style.Triggers>
+    </Style>
+```
+
+
+TextBoxまで作成すると、背景色を白ベースか黒ベースかという選択肢も追加できます。
+
+テキストボックスの選択している箇所がブランドカラーになるのも美しいです。
+
+
+![wpf-14-03]
+
+
+TextBoxなどはまだ簡単なのですが、ラジオボタン、コンボボックスとなるにつれて、VisualStudioが自動生成してくれる
+テンプレートが挑発的です。
+
+
+次回は、ラジオボタンを紹介します。
+
+
+
+---
+
+
+[wpf-14-01]:http://s-ueno.github.io/images/wpf-14-01.png
+[wpf-14-02]:http://s-ueno.github.io/images/wpf-14-02.png
+[wpf-14-03]:http://s-ueno.github.io/images/wpf-14-03.png
+
+
