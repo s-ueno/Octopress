@@ -2,7 +2,7 @@
 layout: post
 title: "Modern Style TextBox"
 date: 2014-12-02 22:10:27 +0900
-updated: 
+updated: 2014-12-03 12:50:31 +0900
 comments: true
 categories: WPF
 tags: [WPF]
@@ -73,7 +73,17 @@ TextBox の Style を Modern Style 対応します。
         </Style>
 ```
 
+
+訂正  
+
+よくみると、IsInactiveSelectionHighlightEnabledなので、フォーカスが外れた際のアクティブでない選択した項目の背景　でした・・・。
+VisualStudio先生、すみませんでした。
+
+<del>
 VS2013 Update 4 ですが、自動生成した MultiTrigger の Condition の設定値が実は逆というバグは愛嬌ということで(ニコッ)
+</del>
+
+
 
 
 まず、シンプルなのが一目でわかります。  
@@ -134,10 +144,16 @@ WPFの組み込みコントロールで、特にLOB開発に利用するコン�
         <Style.Triggers>
             <MultiTrigger>
                 <MultiTrigger.Conditions>
-                    <Condition Property="IsInactiveSelectionHighlightEnabled" Value="false"/>
                     <Condition Property="IsSelectionActive" Value="true"/>
                 </MultiTrigger.Conditions>
                 <Setter Property="SelectionBrush" Value="{DynamicResource TextBox.SelectionBrush}"/>
+            </MultiTrigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsInactiveSelectionHighlightEnabled" Value="true"/>
+                    <Condition Property="IsSelectionActive" Value="false"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="SelectionBrush" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
             </MultiTrigger>
         </Style.Triggers>
     </Style>
