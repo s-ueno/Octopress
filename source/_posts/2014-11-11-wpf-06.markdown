@@ -2,6 +2,7 @@
 layout: post
 title: "Buttonに学ぶテンプレートとスタイル - WPF Vol 05"
 date: 2014-11-11 23:58:00 +0900
+updated: 2014-12-04 12:56:10 +0900
 comments: true
 categories: WPF
 tags: [Style, Template, WPF]
@@ -180,7 +181,8 @@ Windows7のAeroスタイル例を整理しながら説明します。
 各種プロパティに設定している[TemplateBinding]は、別のコントロール プロパティ値を参照するバインディング機能になります。
 ここでは、ButtonChrome.BorderBrushは、ControlTemplateで定義されているButton(つまりもともとのコントロール)のBorderBrush値を参照するように設定されています。
 
-[TemplateBinding] はより具体的で柔軟な設定を可能とし、例えば2個上の親コンテンツのプロパティ値や、指定した親の型が見つかればその値を利用するなど、カスタム コントロールを作成するレベルでは、とても重宝するバインディング機能の一つです。
+
+<del>[TemplateBinding] </del> [Binding] はより具体的で柔軟な設定を可能とし、例えば2個上の親コンテンツのプロパティ値や、指定した親の型が見つかればその値を利用するなど、カスタム コントロールを作成するレベルでは、とても重宝するバインディング機能の一つです。
 
 
 WPFはバインディングとテンプレートが肝要と紹介する所以です。
@@ -401,6 +403,7 @@ LOB開発が、モダンで先進的なWebデザインに一矢報いること�
 [TemplateBinding]:http://msdn.microsoft.com/ja-jp/library/ms742882.aspx
 [ControlTemplate.Triggers]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.controltemplate.triggers.aspx
 [データ記述言語]:http://ja.wikipedia.org/wiki/%E3%83%87%E3%83%BC%E3%82%BF%E8%A8%98%E8%BF%B0%E8%A8%80%E8%AA%9E
+[Binding]:http://msdn.microsoft.com/ja-jp/library/system.windows.data.binding.aspx
 
 [wpf-06-01]:http://s-ueno.github.io/images/wpf-06-01.png
 [wpf-06-02]:http://s-ueno.github.io/images/wpf-06-02.png
