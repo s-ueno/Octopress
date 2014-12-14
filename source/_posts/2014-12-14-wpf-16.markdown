@@ -1,0 +1,94 @@
+---
+layout: post
+title: "Modern Style ComboBox"
+date: 2014-12-14 20:06:57 +0900
+updated: 
+comments: true
+categories: WPF
+tags: [WPF]
+description: ViewModelで簡単にLOB開発できるようなソリューションを目指します。
+keywords: uENLaboratory
+---
+
+
+[ComboBox] は [ItemsControl] 派生なので、コンテナとして自分自身のスタイル
+が一つと、その中にある一つ一つの項目に対しての [ComboBoxItem] スタイル
+この二つで いつものコンボボックス になります。
+
+<!-- more -->
+
+
+さらに、コンテナは 右にボタンを持ち、クリックすればドロップダウンが表示され
+プロパティの設定によっては、編集可能なTextBoxとして機能することもできます。
+
+
+では、いつものように VisualStudio のデザイナ上で
+右クリック ⇒ テンプレートの編集 ⇒ コピーして編集
+でテンプレートを取得・・・してもいいのですが、そうすると
+一つ問題が出てきます。
+
+
+自動生成する Template が現在適用されているWPFのテーマにそぐうための
+アセンブリを強制的に参照することです。
+
+
+こんな風に
+
+
+```
+xmlns:Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2" 
+```
+
+
+回避する方法は、アセンブリを配布するとかGuidレベルの参照に変えるとかいろいろ
+あるのですが、テキストボックス、ボタン、ドロップダウンで構成される
+ただの便利コントロールに外部アセンブリを一つ追加するまでもありません。
+
+
+ただ、いちから作成するのも大変なので MSDN が提供してくれる土台を
+利用してみたいと思います。
+
+
+[ComboBox のスタイルとテンプレート]
+
+
+> サンプル全体については、 「ControlTemplate を使用したスタイル設定のサンプル」を参照してください。.
+
+
+ここから取得します。
+
+
+テンプレートやStyleをカスタマイズする開発者には垂涎もののサンプルです。
+
+
+WPF組み込みコントロールは、どうしても .Net Framework の都合によるもの
+が出てくるので、そういったものを考えた上で提供してくれるStyleはありがたいです。
+
+
+ここから ComboBox のベースとなるStyleを利用したいと思います。
+
+
+このMSDNサンプルが提供してくれるノイズのない情報を有効に利用したいと思います。
+
+
+
+ですが！
+本業の都合で、最近は家路につくのが日が変わっていて、ブログの更新の
+ための時間が取れにくくなっています(涙)
+
+
+この状況には、今年限りで決着を付けたいと考えています。
+
+
+12月はほそぼそと更新することになりそうですが、新年からは
+しっかりと情報を発信できればと思います。
+
+
+
+---
+
+
+[ComboBox]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.combobox.aspx
+[ItemsControl]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.itemscontrol.aspx
+[ComboBoxItem]:http://msdn.microsoft.com/ja-jp/library/system.windows.controls.comboboxitem.aspx
+[ComboBox のスタイルとテンプレート]:http://msdn.microsoft.com/ja-jp/library/ms752094.aspx
